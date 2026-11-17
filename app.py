@@ -11,6 +11,10 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, jsonify, request, send_file, Response, stream_with_context
 from bs4 import BeautifulSoup
+# Cargar el codec idna ANTES del hilo de sync: si ese hilo y la primera petición lo
+# importan a la vez, uno falla y Python cachea "unknown encoding: idna" para siempre
+# (pasó en Render: toda petición daba 500).
+import encodings.idna  # noqa: F401
 from blog_catalog import BlogCatalog
 
 ssl._create_default_https_context = ssl._create_unverified_context
