@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: myl-explorer
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 8 --timeout 180 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: MYL_PUBLICO
+        value: "1"
+      - key: PYTHON_VERSION
+        value: 3.12.7
