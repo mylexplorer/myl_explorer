@@ -1,0 +1,2833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYL Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c13; --bg-2:#0e111b; --surface:#131726; --surface-2:#191e31; --surface-3:#212843;
+  --line:#222941; --line-2:#2f3756;
+  --text:#e7e9f2; --muted:#8e97ad; --faint:#5a6380;
+  --accent:#8b7cf6; --accent-2:#b4a9ff; --accent-soft:#8b7cf622;
+  --gold:#e3b456; --gold-2:#f6d98f;
+  --sel:#34d399; --sel-soft:#34d39922;
+  --danger:#f87171;
+  --radius:10px;
+  --shadow:0 10px 30px -12px #000c;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:#fff}
+button,input,select{font-family:inherit}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+*::-webkit-scrollbar-thumb:hover{background:#3d4770;background-clip:padding-box;border:2px solid transparent}
+
+/* HEADER */
+header{position:relative;background:linear-gradient(180deg,#141a2e 0%,#0f1322 100%);border-bottom:1px solid var(--line);padding:.7rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--gold) 20%,var(--accent) 60%,transparent);opacity:.55}
+.brand{display:flex;align-items:center;gap:.8rem}
+.brand-mark{width:34px;height:34px;flex-shrink:0;filter:drop-shadow(0 2px 8px #e3b45633)}
+.logo{display:block;font-family:'Cinzel',Georgia,serif;font-size:1.15rem;font-weight:700;color:var(--gold-2);letter-spacing:.06em;line-height:1.1}
+.logo span{color:var(--text);font-weight:600}
+.brand-sub{display:block;font-size:.66rem;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+.status-pill{display:flex;align-items:center;gap:.5rem;font-size:.72rem;padding:5px 12px 5px 10px;border-radius:20px;background:#ffffff08;border:1px solid var(--line-2);color:var(--muted);max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--sel);box-shadow:0 0 8px var(--sel);flex-shrink:0;animation:pulse 2.4s ease-in-out infinite}
+
+/* BREADCRUMB */
+.breadcrumb{background:var(--bg-2);border-bottom:1px solid var(--line);padding:.5rem 1.5rem;font-size:.75rem;color:var(--faint);display:flex;align-items:center;gap:.35rem;flex-shrink:0}
+.bc-link{color:var(--accent-2);cursor:pointer;transition:color .15s}.bc-link:hover{color:#fff}
+.bc-cur{color:var(--text);font-weight:500}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* RESIZER */
+.resizer{width:5px;background:var(--bg);border-left:1px solid var(--line);cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative;z-index:10}
+.resizer:hover,.resizer.dragging{background:var(--accent)}
+.resizer::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:32px;border-radius:2px;background:var(--line-2)}
+
+/* PANEL IZQ */
+.sidebar{background:var(--bg-2);display:flex;flex-direction:column;overflow:hidden;width:260px;min-width:140px;max-width:520px;flex-shrink:0}
+.sidebar-scroll{flex:1;overflow-y:auto;padding:.4rem 0 1rem}
+.sidebar-scroll::-webkit-scrollbar{width:6px}
+/* cabeceras de seccion: punto de color por fuente */
+.sec-hdr{--c:var(--accent);margin:.15rem .5rem;padding:.6rem .75rem;border-radius:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;background:var(--bg-2);transition:background .15s}
+.sec-hdr:hover{background:var(--surface)}
+/* tapa el hueco del margen para que la lista no asome sobre la cabecera fija */
+.sec-hdr{box-shadow:0 -8px 0 4px var(--bg-2)}
+.sec-hdr span:first-child{display:flex;align-items:center;gap:.6rem;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.11em}
+.sec-hdr span:first-child::before{content:'';width:8px;height:8px;border-radius:3px;background:var(--c);opacity:.55;transition:all .2s}
+.sec-hdr.open{background:var(--surface)}
+.sec-hdr.open span:first-child{color:var(--text)}
+.sec-hdr.open span:first-child::before{opacity:1;box-shadow:0 0 10px var(--c)}
+.sec-hdr .arrow{font-size:.55rem;transition:transform .2s;color:var(--faint)}
+.sec-hdr.open .arrow{transform:rotate(90deg);color:var(--c)}
+#sec-hdr-blog{--c:#8b7cf6} #sec-hdr-casa{--c:#f59e0b} #sec-hdr-cdnmap{--c:#fb923c}
+#sec-hdr-gorila{--c:#22d3ee} #sec-hdr-serena{--c:#f87171} #sec-hdr-fb{--c:#3b82f6} #sec-hdr-cdn{--c:#a78bfa}
+#sec-hdr-radar{--c:#facc15} #sec-hdr-enum{--c:#c084fc} #sec-hdr-media{--c:#f472b6}
+#sec-hdr-mazos{--c:#34d399}
+.sec-content{display:none;margin:0 .5rem .35rem 1.05rem;padding:.2rem 0;border-left:1px solid var(--line)}
+.sec-content.open{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+/* items de lista (colecciones, meses, grupos) */
+.coll-btn,.month-btn{width:calc(100% - .35rem);margin-left:.35rem;padding:.45rem .7rem;background:none;border:none;border-radius:7px;text-align:left;cursor:pointer;color:var(--muted);font-size:.8rem;display:flex;justify-content:space-between;align-items:center;transition:all .15s}
+.coll-btn:hover,.month-btn:hover{background:var(--surface);color:var(--text)}
+.coll-btn.active,.month-btn.active{background:linear-gradient(90deg,var(--accent-soft),#8b7cf60a);color:var(--accent-2);box-shadow:inset 2px 0 0 var(--accent)}
+/* radar */
+.radar-btn{width:100%;padding:.6rem .8rem;background:none;border:none;border-radius:7px;text-align:left;cursor:pointer;color:var(--muted);font-size:.8rem;display:flex;align-items:center;gap:.6rem;transition:all .15s}
+.radar-btn:hover{background:var(--surface);color:var(--text)}
+.radar-btn.active{color:#f59e0b}
+.radar-dot{width:7px;height:7px;border-radius:50%;background:#374151;flex-shrink:0;transition:background .3s}
+.radar-btn.active .radar-dot,.radar-btn.scanning .radar-dot{background:#f59e0b;box-shadow:0 0 6px #f59e0b88;animation:pulse .9s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.radar-sub{font-size:.68rem;color:var(--faint);padding:.3rem 1rem .5rem 2.2rem}
+
+/* años / colecciones expandibles */
+.year-row{border-bottom:none}
+.year-btn{width:calc(100% - .35rem);margin-left:.35rem;padding:.5rem .7rem;background:none;border:none;border-radius:7px;text-align:left;cursor:pointer;color:#c9cee0;font-size:.85rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;transition:all .15s}
+.year-btn:hover{background:var(--surface);color:#fff}
+.year-btn.open{color:#fff}
+.arrow{font-size:.55rem;transition:transform .2s;color:var(--faint)}
+.year-btn.open .arrow{transform:rotate(90deg);color:var(--accent-2)}
+.months-wrap{display:none;margin-left:.9rem;border-left:1px dashed var(--line-2);padding-left:.1rem}
+.months-wrap.open{display:block}
+.m-count{font-size:.66rem;font-variant-numeric:tabular-nums;background:var(--surface-2);border-radius:10px;padding:1px 7px;color:var(--faint);flex-shrink:0}
+.month-btn.active .m-count{background:var(--accent);color:#fff}
+.srn-ed .year-btn{font-size:.8rem;font-weight:500}
+.month-btn .g-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:.4rem}
+.m-loading{display:inline-block;width:8px;height:8px;border:1.5px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PANEL DER */
+.main{display:flex;flex-direction:column;overflow:hidden;flex:1;min-width:0;background:radial-gradient(1200px 500px at 70% -10%,#8b7cf614,transparent 60%),radial-gradient(800px 400px at 0% 110%,#e3b4560d,transparent 60%),var(--bg)}
+
+/* barra acciones */
+.topbar{padding:1rem 1.5rem;background:#0e111bcc;backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:.75rem;flex-wrap:wrap;min-height:72px}
+.topbar-left{min-width:0}
+.topbar-left h2{font-family:'Cinzel',Georgia,serif;font-size:1.12rem;font-weight:700;color:#fff;letter-spacing:.02em;max-width:560px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-left p{font-size:.74rem;color:var(--muted);margin-top:3px}
+.btns{display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;padding:7px 14px;border:1px solid transparent;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn-primary{background:linear-gradient(135deg,#8b7cf6,#6d5ce8);color:#fff;box-shadow:0 6px 18px -6px #8b7cf6aa,inset 0 1px 0 #ffffff33}
+.btn-primary:hover:not(:disabled){filter:brightness(1.1);box-shadow:0 8px 22px -6px #8b7cf6cc,inset 0 1px 0 #ffffff33}
+.btn-ghost{background:var(--surface-2);color:#c9cee0;border-color:var(--line-2)}.btn-ghost:hover:not(:disabled){background:var(--surface-3);color:#fff}
+.btn-danger{background:transparent;color:var(--danger);border-color:#f8717144}.btn-danger:hover:not(:disabled){background:#f871711a;border-color:var(--danger)}
+.btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.badge{background:#ffffff2e;color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;margin-left:7px;font-variant-numeric:tabular-nums}
+
+/* barra de progreso */
+.progress-bar-wrap{height:3px;background:var(--line);flex-shrink:0;display:none;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--accent),var(--accent-2));width:0%;transition:width .3s;box-shadow:0 0 10px var(--accent)}
+
+/* GRID */
+.grid-wrap{flex:1;overflow-y:auto;padding:1.25rem 1.5rem 2rem}
+
+/* separador de grupo dentro del grid */
+.post-separator{grid-column:1/-1;padding:.9rem 0 .4rem;font-size:.78rem;color:var(--muted);margin-top:.6rem;display:flex;align-items:center;gap:.6rem;position:relative}
+.post-separator::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--line-2),transparent)}
+.post-separator:first-child{margin-top:0;padding-top:0}
+.post-separator.radar-sep{margin-top:.1rem;padding-top:.5rem;color:#facc15}
+.post-separator.radar-sep::after{background:linear-gradient(90deg,#facc1566,transparent)}
+.post-separator.radar-sep .post-sep-title{color:#facc15}
+.img-card.radar-card .img-thumb{outline:1px dashed #facc1588;outline-offset:-1px}
+.cat-status{font-size:.66rem;color:var(--faint);padding:.35rem 1rem .5rem;display:flex;gap:.5rem;align-items:center}
+.cat-status button{background:none;border:1px solid var(--line-2);color:var(--muted);border-radius:5px;font-size:.62rem;padding:.1rem .4rem;cursor:pointer}
+.cat-status button:hover{color:var(--text)}
+.post-sep-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px;font-weight:600;color:#d5d9e8;font-size:.85rem}
+.post-sep-title::before{content:'◆';color:var(--gold);font-size:.6rem;margin-right:.5rem;vertical-align:2px}
+.post-sep-count{flex-shrink:0;background:var(--accent-soft);border-radius:10px;padding:1px 8px;font-size:.66rem;color:var(--accent-2);font-weight:600}
+.post-sep-selbtn{flex-shrink:0;margin-left:auto;padding:3px 10px;background:var(--surface);border:1px solid var(--line-2);border-radius:6px;font-size:.68rem;color:var(--muted);cursor:pointer;transition:all .15s}
+.post-sep-selbtn:hover{border-color:var(--accent);color:var(--accent-2)}
+.post-sep-selbtn.all-sel{background:var(--sel-soft);border-color:var(--sel);color:var(--sel)}
+
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:.9rem}
+.img-card{position:relative;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;background:var(--surface);transition:transform .18s ease,border-color .18s,box-shadow .18s}
+.img-card:hover{transform:translateY(-3px);border-color:#8b7cf688;box-shadow:var(--shadow),0 0 0 1px #8b7cf633}
+.img-card.selected{border-color:var(--sel);box-shadow:0 0 0 2px var(--sel),0 10px 26px -10px #34d39966;background:#10241f}
+/* formato carta (63x88) para que no se corte el arte */
+.img-thumb{width:100%;aspect-ratio:63/88;height:auto;background:repeating-linear-gradient(45deg,#121625 0 10px,#141929 10px 20px);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.img-thumb img{width:100%;height:100%;object-fit:cover;transition:opacity .3s,transform .35s ease;opacity:0}
+.img-thumb img.loaded{opacity:1}
+.img-card:hover .img-thumb img{transform:scale(1.04)}
+.img-err{font-size:.7rem;color:var(--faint);text-align:center;padding:.5rem}
+.chk{position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;background:var(--sel);color:#052e1c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 10px #0008,0 0 0 2px #0a0c13;animation:pop .18s ease}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.img-name{padding:6px 8px 7px;font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid var(--line)}
+.img-card:hover .img-name{color:var(--text)}
+.img-card.selected .img-name{color:#a7f3d0}
+
+/* skeleton */
+.skel{aspect-ratio:63/96;border-radius:var(--radius);background:linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 50%,var(--surface) 75%);background-size:200%;animation:sh 1.3s infinite;border:1px solid var(--line)}
+@keyframes sh{0%{background-position:200%}100%{background-position:-200%}}
+
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--faint);gap:1rem;font-size:.9rem;text-align:center;padding:2rem;line-height:1.7}
+.empty svg{width:76px;height:76px;padding:18px;border-radius:22px;color:var(--accent-2);background:linear-gradient(145deg,var(--surface-2),var(--surface));border:1px solid var(--line-2);box-shadow:var(--shadow),0 0 40px -10px #8b7cf655}
+
+/* toast */
+.toast{position:fixed;bottom:1.25rem;right:1.25rem;background:#191e31ee;backdrop-filter:blur(8px);color:var(--text);border:1px solid var(--line-2);border-left:3px solid var(--accent);padding:.7rem 1.1rem;border-radius:10px;font-size:.82rem;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;max-width:320px;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── MAZOS.CL ── */
+/* mode tabs */
+.mode-tabs{display:flex;border-bottom:1px solid #2d3748}
+.mode-tab{flex:1;padding:.45rem .5rem;background:none;border:none;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#4a5568;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px}
+.mode-tab:hover{color:#a0aec0}
+.mode-tab.active{color:#10b981;border-bottom-color:#10b981}
+/* game/block buttons */
+.mazos-game-btn{width:100%;padding:.6rem 1rem;background:none;border:none;text-align:left;cursor:pointer;color:#cbd5e0;font-size:.86rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e2535;transition:all .15s}
+.mazos-game-btn:hover{background:#1e2535;color:#fff}
+.mazos-game-btn.open{color:#10b981}
+.mazos-game-btn.open .arrow{transform:rotate(90deg);color:#10b981}
+.mazos-eds-wrap{display:none}
+.mazos-eds-wrap.open{display:block}
+.mazos-ed-btn{width:100%;padding:.48rem 1rem .48rem 1.6rem;background:none;border:none;text-align:left;cursor:pointer;color:#718096;font-size:.8rem;display:flex;justify-content:space-between;align-items:center;transition:all .15s;border-bottom:1px solid #1e2535}
+.mazos-ed-btn:hover{background:#1e2535;color:#e2e8f0}
+.mazos-ed-btn.active{background:#052e16;color:#34d399;border-left:2px solid #10b981;padding-left:calc(1.6rem - 2px)}
+.mazos-ed-btn.active .m-count{background:#065f46;color:#34d399}
+/* product buttons (slightly different indent/color) */
+.mazos-prod-btn{width:100%;padding:.44rem 1rem .44rem 1.6rem;background:none;border:none;text-align:left;cursor:pointer;color:#718096;font-size:.78rem;display:flex;justify-content:space-between;align-items:center;transition:all .15s;border-bottom:1px solid #1e2535}
+.mazos-prod-btn:hover{background:#1e2535;color:#e2e8f0}
+.mazos-prod-btn.active{background:#1a2e1a;color:#4ade80;border-left:2px solid #22c55e;padding-left:calc(1.6rem - 2px)}
+.mazos-prod-btn.active .m-count{background:#14532d;color:#4ade80}
+.prod-order{flex:none;min-width:1.5rem;margin-right:.45rem;font-size:.7rem;font-weight:700;color:#475569;text-align:right;font-variant-numeric:tabular-nums}
+.mazos-prod-btn:hover .prod-order{color:#94a3b8}
+.mazos-prod-btn.active .prod-order{color:#22c55e}
+.prod-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;text-align:left}
+.prod-date{flex:none;margin-left:.4rem;font-size:.62rem;color:#475569;font-variant-numeric:tabular-nums}
+.mazos-prod-btn:hover .prod-date{color:#64748b}
+/* product quantity badge on cards */
+.qty-badge{position:absolute;top:4px;left:4px;font-size:.62rem;font-weight:700;background:#1e3a5f;color:#93c5fd;border-radius:3px;padding:2px 5px;pointer-events:none}
+.qty-badge.qty2{background:#3b1f1f;color:#fca5a5}
+.qty-badge.qty3{background:#2e1b4e;color:#c4b5fd}
+/* edition mini-badge inside card (product mode) */
+.ed-badge{position:absolute;top:4px;right:4px;font-size:.52rem;background:#161b27cc;color:#64748b;border-radius:3px;padding:1px 4px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+/* filter bar */
+.filter-bar{padding:.5rem 1.25rem;background:#161b27;border-bottom:1px solid #2d3748;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.78rem;color:#a0aec0;flex-shrink:0}
+.filter-bar label{color:#718096;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.filter-bar input{background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:5px;padding:3px 8px;font-size:.78rem;width:88px}
+.filter-bar select{background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:5px;padding:3px 8px;font-size:.78rem}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:#10b981}
+.filter-info{font-size:.7rem;color:#4a5568;margin-left:.25rem}
+.sep{color:#2d3748}
+/* mazos card overlays */
+.mazos-card .type-badge{position:absolute;bottom:4px;left:4px;font-size:.56rem;font-weight:700;padding:2px 4px;border-radius:3px;letter-spacing:.4px;line-height:1;pointer-events:none}
+.mazos-card .cost-badge{position:absolute;bottom:4px;right:4px;font-size:.7rem;font-weight:700;width:19px;height:19px;border-radius:50%;background:#78350f;color:#fde68a;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.mazos-card .race-row{padding:2px 6px 4px;display:flex;flex-wrap:wrap;gap:2px;min-height:16px}
+.mazos-card .race-tag{font-size:.56rem;background:#1e293b;color:#64748b;border-radius:3px;padding:1px 4px}
+.type-ALIADO{background:#1e3a5f;color:#93c5fd}
+.type-ARMA{background:#3b1f1f;color:#fca5a5}
+.type-TALISMAN{background:#2e1b4e;color:#c4b5fd}
+.type-TOTEM{background:#1a3327;color:#86efac}
+.type-ORO{background:#3b2f0a;color:#fde68a}
+
+/* ── ENUMERADOR ── */
+.enum-form{padding:.75rem 1rem;display:flex;flex-direction:column;gap:.55rem}
+.enum-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#4a5568;margin-bottom:1px}
+.enum-input{background:#161b27;border:1px solid #2d3748;color:#e2e8f0;border-radius:5px;padding:4px 8px;font-size:.78rem;width:100%}
+.enum-input:focus{outline:none;border-color:#a78bfa}
+.enum-row{display:flex;gap:.4rem;align-items:flex-end}
+.enum-row .enum-input{width:80px}
+.enum-suffix-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.enum-chk{display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:#a0aec0;cursor:pointer}
+.enum-chk input{accent-color:#a78bfa;cursor:pointer}
+.enum-run-btn{width:100%;padding:.55rem;background:#312e81;color:#c4b5fd;border:1px solid #4338ca;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;margin-top:.2rem}
+.enum-run-btn:hover{background:#3730a3}
+.enum-run-btn.active{background:#4c1d95;color:#e9d5ff;animation:pulse .9s infinite}
+.enum-run-btn:disabled{opacity:.35;cursor:not-allowed}
+.enum-status{font-size:.68rem;color:#6366f1;padding:.2rem 1rem .5rem;min-height:1.2em;text-align:center}
+.enum-tip{font-size:.65rem;color:#374151;padding:0 1rem .4rem;line-height:1.5}
+
+/* ── CDN CARTAS ── */
+.cdn-grid{display:flex;flex-wrap:wrap;gap:5px;padding:.65rem .85rem .75rem}
+.cdn-pill{padding:3px 9px;border-radius:12px;border:1px solid #2d3748;background:#161b27;color:#718096;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.cdn-pill:hover{background:#1e2535;color:#e2e8f0;border-color:#6366f1}
+.cdn-pill.active{background:#1e1b4b;color:#818cf8;border-color:#6366f1}
+.cdn-pill .cdn-cnt{font-size:.6rem;font-weight:400;color:#4a5568;background:#2d3748;border-radius:8px;padding:1px 5px}
+.cdn-pill.active .cdn-cnt{background:#312e81;color:#818cf8}
+.cdn-pill.png-only{border-color:#0d4f3c}
+.cdn-pill.png-only:hover,.cdn-pill.png-only.active{background:#052e16;color:#34d399;border-color:#10b981}
+.cdn-pill.png-only .cdn-cnt{background:#065f46;color:#34d399}
+/* mapa CDN casamyl */
+.cm-box{padding:.55rem .85rem;display:flex;flex-direction:column;gap:.4rem}
+.cm-row{display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:#718096}
+.cm-row label{width:4.2rem;flex-shrink:0}
+.cm-row select{flex:1;min-width:0;background:#1a202c;border:1px solid #2d3748;color:#e2e8f0;border-radius:4px;padding:.25rem .3rem;font-size:.72rem}
+.cm-meta{padding:0 6px 4px;font-size:.62rem;color:#4a5568;display:flex;justify-content:space-between;gap:4px}
+.cm-meta .hd{color:#10b981;font-weight:600}
+.cm-open{position:absolute;bottom:5px;right:5px;width:22px;height:22px;border-radius:4px;background:#0f1117cc;color:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none;opacity:0;transition:opacity .15s}
+.img-card:hover .cm-open{opacity:1}
+.cm-more{grid-column:1/-1;justify-self:center;margin:.6rem 0}
+.img-card.cm .img-thumb{aspect-ratio:auto;height:210px;background:var(--bg-2)}
+.img-card.cm .img-thumb img{object-fit:contain}
+.cdn-group-lbl{width:100%;font-size:.58rem;text-transform:uppercase;letter-spacing:.8px;color:#2d3748;padding:.3rem .85rem 0;font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+      <defs><linearGradient id="bmG" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f6d98f"/><stop offset="1" stop-color="#b8862e"/></linearGradient></defs>
+      <rect x="4" y="6" width="17" height="24" rx="2.5" transform="rotate(-12 12 18)" fill="#191e31" stroke="#8b7cf6" stroke-width="1.4"/>
+      <rect x="12" y="4" width="17" height="24" rx="2.5" transform="rotate(8 20 16)" fill="#131726" stroke="url(#bmG)" stroke-width="1.6"/>
+      <path d="M21.2 10.5l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="url(#bmG)"/>
+    </svg>
+    <div>
+      <span class="logo">MYL <span>Explorer</span></span>
+      <span class="brand-sub">Archivo de imágenes · Mitos y Leyendas</span>
+    </div>
+  </div>
+  <span class="status-pill" id="statusPill">Iniciando...</span>
+</header>
+
+<div class="breadcrumb" id="breadcrumb">
+  <span class="bc-cur">Inicio</span>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- ── BLOG SECTION ── -->
+      <div class="sec-hdr open" id="sec-hdr-blog" onclick="toggleSec('blog')">
+        <span>Archivo del Blog</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content open" id="sec-blog">
+        <div class="cat-status"><span id="catStatus">Catálogo…</span>
+          <button onclick="catalogSync(false)" title="Buscar novedades en el blog ahora">Actualizar</button>
+          <button onclick="catalogSync(true)" title="Rehacer el catálogo completo (detecta lo borrado). ~1 min">Completo</button>
+        </div>
+        <div id="sidebarScroll">
+          <div style="padding:1.5rem;text-align:center;color:#4a5568;font-size:.8rem">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- ── CASAMYL SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-casa" onclick="toggleSec('casa')">
+        <span>CasaMYL</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-casa">
+        <div id="casaScroll">
+          <div style="padding:1.5rem;text-align:center;color:#4a5568;font-size:.8rem">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- ── CASAMYL CDN COMPLETO (mapa) ── -->
+      <div class="sec-hdr" id="sec-hdr-cdnmap" onclick="toggleSec('cdnmap')">
+        <span>CasaMYL · CDN completo</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-cdnmap">
+        <div class="cm-box">
+          <input class="enum-input" id="cmSearch" placeholder="Buscar nombre… (ej: premier dracula)"
+                 oninput="cmShow()">
+          <div class="cm-row"><label>Orden</label>
+            <select id="cmSort" onchange="cmShow()">
+              <option value="name">Nombre</option>
+              <option value="res">Resolución ↓</option>
+              <option value="size">Peso ↓</option>
+            </select></div>
+          <div class="cm-row"><label>Lado mín.</label>
+            <select id="cmMin" onchange="cmShow()">
+              <option value="0">Cualquiera</option>
+              <option value="800">≥ 800 px</option>
+              <option value="1200">≥ 1200 px</option>
+              <option value="2000">≥ 2000 px</option>
+            </select></div>
+          <div class="cm-row"><label>Carpeta</label>
+            <select id="cmFolder" onchange="cmShow()">
+              <option value="">Todas</option>
+              <option value="files">files</option>
+              <option value="products">products</option>
+              <option value="collections">collections</option>
+            </select></div>
+        </div>
+        <div class="cdn-grid" id="cmCats">
+          <div style="color:#4a5568;font-size:.75rem">Abre para cargar el mapa</div>
+        </div>
+        <div class="cm-box">
+          <div class="enum-label">Sondear nombre nuevo (recién subido)</div>
+          <div style="display:flex;gap:.3rem">
+            <input class="enum-input" id="cmProbeName" placeholder="PREMIERIMPNOV"
+                   onkeydown="if(event.key==='Enter')cmProbe()">
+            <button class="coll-btn" style="width:auto;margin:0" onclick="cmProbe()">Probar</button>
+          </div>
+          <div id="cmProbeMsg" style="font-size:.68rem;color:#4a5568"></div>
+        </div>
+      </div>
+
+      <!-- ── GORILATCG SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-gorila" onclick="toggleSec('gorila')">
+        <span>GorilaTCG</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-gorila">
+        <div style="display:flex;gap:.3rem;padding:.5rem .6rem">
+          <input class="enum-input" id="gorilaUrl" placeholder="Pega URL de un producto…"
+                 onkeydown="if(event.key==='Enter')gorilaLocate()">
+          <button class="coll-btn" style="width:auto;margin:0" onclick="gorilaLocate()">Ir</button>
+        </div>
+        <div id="gorilaScroll">
+          <div style="padding:1rem;text-align:center;color:#4a5568;font-size:.75rem">Abre para cargar colecciones</div>
+        </div>
+      </div>
+
+      <!-- ── MYLSERENA SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-serena" onclick="toggleSec('serena')">
+        <span>MylSerena</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-serena">
+        <div style="display:flex;gap:.3rem;padding:.5rem .6rem">
+          <input class="enum-input" id="serenaUrl" placeholder="Pega URL de un producto…"
+                 onkeydown="if(event.key==='Enter')serenaLocate()">
+          <button class="coll-btn" style="width:auto;margin:0" onclick="serenaLocate()">Ir</button>
+        </div>
+        <div id="serenaScroll">
+          <div style="padding:1rem;text-align:center;color:#4a5568;font-size:.75rem">Abre para cargar bloques</div>
+        </div>
+      </div>
+
+      <!-- ── FACEBOOK SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-fb" onclick="toggleSec('fb')">
+        <span>Facebook</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-fb">
+        <div style="display:flex;gap:.3rem;padding:.5rem .6rem">
+          <input id="fbPage" value="CartotecaMyL" title="Nombre de la página de Facebook"
+                 style="flex:1;min-width:0;background:#1a202c;border:1px solid #2d3748;color:#e2e8f0;border-radius:4px;padding:.3rem .4rem;font-size:.75rem"
+                 onkeydown="if(event.key==='Enter')loadFbAlbums()">
+          <button class="coll-btn" style="width:auto;margin:0" onclick="loadFbAlbums()">Ver</button>
+        </div>
+        <div style="padding:0 .6rem .4rem;font-size:.68rem;color:#4a5568">
+          <a href="#" style="color:#10b981" onclick="fbLogin();return false">Iniciar sesión / cambiar cuenta</a>
+        </div>
+        <div id="fbScroll"></div>
+      </div>
+
+      <!-- ── CDN CARTAS SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-cdn" onclick="toggleSec('cdn')">
+        <span>CDN Cartas</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-cdn">
+        <div id="cdnGrid">
+          <div style="padding:1rem;text-align:center;color:#4a5568;font-size:.75rem">Abre para ver las series</div>
+        </div>
+      </div>
+
+      <!-- ── RADAR SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-radar" onclick="toggleSec('radar')">
+        <span>Radar</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-radar">
+        <button class="radar-btn" id="radarRunBtn" onclick="runRadar()">
+          <span class="radar-dot"></span>
+          <span id="radarBtnLabel">Escanear ahora</span>
+        </button>
+        <div class="radar-sub" id="radarSub">Busca imágenes subidas antes de publicarse</div>
+      </div>
+
+      <!-- ── ENUMERADOR SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-enum" onclick="toggleSec('enum')">
+        <span>Enumerador</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-enum">
+        <div class="enum-form">
+          <div>
+            <div class="enum-label">URL base (pega una URL de muestra)</div>
+            <input class="enum-input" id="enumSampleUrl"
+              placeholder="https://blog.myl.cl/…/AYDV_179-1.png"
+              oninput="enumAutoDetect(this.value)">
+          </div>
+          <div>
+            <div class="enum-label">Prefijo detectado</div>
+            <input class="enum-input" id="enumBase" placeholder="…/AYDV_">
+          </div>
+          <div class="enum-row">
+            <div style="flex:1">
+              <div class="enum-label">Desde #</div>
+              <input class="enum-input" id="enumFrom" type="number" min="1" value="1">
+            </div>
+            <div style="flex:1">
+              <div class="enum-label">Hasta #</div>
+              <input class="enum-input" id="enumTo"   type="number" min="1" value="300">
+            </div>
+            <div style="flex:0 0 60px">
+              <div class="enum-label">Ext</div>
+              <input class="enum-input" id="enumExt" value=".png" style="width:58px">
+            </div>
+          </div>
+          <div>
+            <div class="enum-label">Sufijos a probar</div>
+            <div class="enum-suffix-row">
+              <label class="enum-chk"><input type="checkbox" id="sufNone" checked> (ninguno)</label>
+              <label class="enum-chk"><input type="checkbox" id="suf1"> -1</label>
+              <label class="enum-chk"><input type="checkbox" id="suf2"> -2</label>
+              <label class="enum-chk"><input type="checkbox" id="suf3"> -3</label>
+            </div>
+          </div>
+          <div>
+            <div class="enum-label">Extensiones adicionales</div>
+            <div class="enum-suffix-row">
+              <label class="enum-chk"><input type="checkbox" id="extPng"> .png</label>
+              <label class="enum-chk"><input type="checkbox" id="extWebp"> .webp</label>
+            </div>
+          </div>
+          <button class="enum-run-btn" id="enumRunBtn" onclick="runEnumerator()">Buscar imágenes</button>
+        </div>
+        <div class="enum-status" id="enumStatus"></div>
+        <div class="enum-tip" id="enumTip">Pega una URL de muestra para auto-detectar el patrón.</div>
+      </div>
+
+      <!-- ── BIBLIOTECA DE MEDIOS SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-media" onclick="toggleSec('media')">
+        <span>Biblioteca de medios</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-media">
+        <div class="enum-form">
+          <div class="enum-row">
+            <div style="flex:1">
+              <div class="enum-label">Año</div>
+              <select class="enum-input" id="mediaYear"></select>
+            </div>
+            <div style="flex:1">
+              <div class="enum-label">Mes</div>
+              <select class="enum-input" id="mediaMonth"></select>
+            </div>
+          </div>
+          <button class="enum-run-btn" id="mediaRunBtn" onclick="loadMediaMonth()">Cargar mes</button>
+        </div>
+        <div class="enum-tip">Todas las imágenes subidas ese mes, agrupadas por día — incluye las que no están en ningún post.</div>
+      </div>
+
+      <!-- ── MAZOS.CL SECTION ── -->
+      <div class="sec-hdr" id="sec-hdr-mazos" onclick="toggleSec('mazos')">
+        <span>Mazos.cl</span><span class="arrow">▶</span>
+      </div>
+      <div class="sec-content" id="sec-mazos">
+        <!-- Tabs (visible after catalog loads) -->
+        <div id="mazosModeTabs" class="mode-tabs" style="display:none">
+          <button id="mTabEd"   class="mode-tab active" onclick="setMazosMode('edition')">Ediciones</button>
+          <button id="mTabProd" class="mode-tab"        onclick="setMazosMode('product')">Productos</button>
+        </div>
+        <!-- Edition tree -->
+        <div id="mazosTree">
+          <div style="padding:1.5rem;text-align:center;color:#4a5568;font-size:.8rem">Abre para cargar catálogo</div>
+        </div>
+        <!-- Product tree (hidden until product mode) -->
+        <div id="mazosProductTree" style="display:none"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="resizer" id="sideResizer"></div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h2 id="mainTitle">Selecciona un mes del archivo</h2>
+        <p id="mainSub"></p>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" id="btnAll"  onclick="selectAll()"  disabled>Sel. todas</button>
+        <button class="btn btn-danger" id="btnNone" onclick="deselectAll()" disabled>Limpiar</button>
+        <button class="btn btn-ghost" id="btnSaveDisk" onclick="saveMazosDisk()" disabled style="display:none;background:#065f46;color:#34d399;border-color:#10b981">Guardar en disco</button>
+        <button class="btn btn-ghost" id="btnSort" onclick="toggleSort()" style="display:none">Fecha ↓</button>
+        <button class="btn btn-primary" id="btnDl"  onclick="downloadSelected()" disabled>
+          Descargar ZIP<span class="badge" id="badge">0</span>
+        </button>
+      </div>
+    </div>
+    <div class="progress-bar-wrap" id="pbWrap">
+      <div class="progress-bar" id="pb"></div>
+    </div>
+
+    <!-- Barra de filtros Mazos.cl (oculta por defecto) -->
+    <div id="mazosFilterBar" class="filter-bar" style="display:none">
+      <!-- Filtros modo Edición -->
+      <span id="mFiltEdRange">
+        <label>ID:</label>
+        <input type="number" id="mFiltFrom" placeholder="desde" min="1" step="1">
+        <span class="sep">—</span>
+        <input type="number" id="mFiltTo" placeholder="hasta" min="1" step="1">
+      </span>
+      <!-- Filtros modo Producto (edición + copias mínimas) -->
+      <span id="mFiltProdExtra" style="display:none">
+        <label>Edición:</label>
+        <select id="mFiltEd"><option value="">Todas</option></select>
+        <label style="margin-left:.3rem">Copias ≥</label>
+        <input type="number" id="mFiltQty" placeholder="1" min="1" step="1" style="width:52px">
+      </span>
+      <!-- Tipo (compartido) -->
+      <label style="margin-left:.3rem">Tipo:</label>
+      <select id="mFiltType"><option value="">Todos</option></select>
+      <button class="btn btn-ghost" style="padding:3px 11px;font-size:.74rem" onclick="applyMazosFilter()">Filtrar</button>
+      <button class="btn btn-ghost" style="padding:3px 9px;font-size:.74rem" onclick="clearMazosFilter()">✕</button>
+      <span id="mFiltInfo" class="filter-info"></span>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="empty" id="emptyState">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Elige un año y luego un mes<br>para ver todas sus imágenes
+      </div>
+      <div id="gridArea" style="display:none">
+        <div class="img-grid" id="imgGrid"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Sidebar resize ────────────────────────────────
+(function(){
+  const STORAGE_KEY = 'myl_sidebar_w';
+  const sidebar = document.getElementById ? null : null; // resolved after DOM
+  function initResizer(){
+    const resizer = document.getElementById('sideResizer');
+    const sb      = resizer.previousElementSibling; // .sidebar
+    const saved   = localStorage.getItem(STORAGE_KEY);
+    if(saved) sb.style.width = saved + 'px';
+
+    let startX, startW;
+    resizer.addEventListener('mousedown', e => {
+      startX = e.clientX;
+      startW = sb.getBoundingClientRect().width;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if(!resizer.classList.contains('dragging')) return;
+      const newW = Math.min(520, Math.max(140, startW + (e.clientX - startX)));
+      sb.style.width = newW + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if(!resizer.classList.contains('dragging')) return;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem(STORAGE_KEY, parseInt(sb.style.width));
+    });
+    // doble clic: reset a 240px
+    resizer.addEventListener('dblclick', () => {
+      sb.style.width = '240px';
+      localStorage.setItem(STORAGE_KEY, 240);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', initResizer);
+})();
+
+let yearsData       = [];
+let casaCollections = [];
+let activeYear      = null;
+let activeMonth     = null;   // {year, month, label, key}
+let activeCasaColl  = null;   // handle string
+let activeSource    = 'blog'; // 'blog' | 'casa' | 'mazos'
+let allImages       = [];
+let selected        = new Set();
+let sse             = null;
+let postGroups      = [];     // buffer de grupos {title,date,url,images} para ordenar
+let sortOrder       = 'desc'; // 'asc' | 'desc'
+
+// ── Estado Mazos.cl ───────────────────────────────
+let mazosGames        = [];
+let mazosOpenGames    = new Set();
+let mazosEdSlug       = null;
+let mazosGameSlug     = null;
+let mazosEdName       = null;
+let mazosCards        = [];
+let mazosFiltered     = [];
+let mazosSse          = null;
+let mazosCatalogDone  = false;
+// Product mode
+let mazosMode         = 'edition';  // 'edition' | 'product'
+let mazosProductBlocks = [];        // [{name, slug, products:[{id,name,slug}]}]
+let mazosProductDone  = false;
+let mazosCurrentProd  = null;       // {id, name, slug}
+let mazosOpenBlocks   = new Set();  // for product tree
+
+// ── INIT ──────────────────────────────────────────
+(async () => {
+  setStatus('Cargando...');
+  // Load both in parallel
+  const [blogRes, casaRes] = await Promise.allSettled([
+    fetch('/api/years').then(r => r.json()),
+    fetch('/api/casa/collections').then(r => r.json()),
+  ]);
+  if (blogRes.status === 'fulfilled') {
+    yearsData = blogRes.value.data || [];
+    renderBlogSidebar();
+  }
+  if (casaRes.status === 'fulfilled') {
+    casaCollections = casaRes.value.data || [];
+    renderCasaSidebar();
+  }
+  setStatus('Listo');
+})();
+
+// ── VERSIÓN PÚBLICA: ocultar lo que el servidor deshabilita ──
+let MODO_PUBLICO = false;
+fetch('/api/config').then(r => r.json()).then(c => {
+  MODO_PUBLICO = !!c.publico;
+  if (!MODO_PUBLICO) return;
+  ['fb', 'cdnmap', 'enum', 'cdn'].forEach(n => {   // 'cdn' depende del enumerador
+    document.getElementById(`sec-hdr-${n}`)?.remove();
+    document.getElementById(`sec-${n}`)?.remove();
+  });
+  document.querySelector('.cat-status button[onclick="catalogSync(true)"]')?.remove();
+  // El JS de mazos sigue usando el botón: se oculta, no se borra
+  document.head.insertAdjacentHTML('beforeend', '<style>#btnSaveDisk{display:none!important}</style>');
+}).catch(() => {});
+
+// ── CATÁLOGO DEL BLOG (sync en segundo plano en el servidor) ──
+let catRev = null, catNewMedia = null, catTimer = null;
+function catAgo(iso) {
+  if (!iso) return 'nunca';
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  return m < 1 ? 'recién' : m < 60 ? `hace ${m} min` : `hace ${Math.round(m / 60)} h`;
+}
+async function catalogPoll() {
+  clearTimeout(catTimer);
+  let st;
+  try { st = await (await fetch('/api/blog/catalog/status')).json(); }
+  catch { catTimer = setTimeout(catalogPoll, 60000); return; }
+  const el = document.getElementById('catStatus');
+  el.textContent = !st.ready ? (st.syncing ? 'Creando catálogo… (en vivo mientras)' : 'Sin catálogo (en vivo)')
+    : `${st.media.toLocaleString('es-CL')} medios · ${st.syncing ? 'sincronizando…' : catAgo(st.last_sync)}`;
+  el.title = st.last_error ? `Último error: ${st.last_error}` : `${st.posts} posts · sync ${st.last_sync || '-'}`;
+  if (catRev !== null && st.rev !== catRev) {
+    const nuevas = st.new_media - (catNewMedia ?? st.new_media);
+    if (nuevas > 0) toast(`${nuevas} imagen(es) nueva(s) en el blog`);
+    try {
+      yearsData = (await (await fetch('/api/years')).json()).data || yearsData;
+      renderBlogSidebar();
+    } catch {}
+  }
+  catRev = st.rev; catNewMedia = st.new_media;
+  catTimer = setTimeout(catalogPoll, st.syncing ? 5000 : 60000);
+}
+async function catalogSync(full) {
+  await fetch(`/api/blog/catalog/sync${full ? '?full=1' : ''}`, {method: 'POST'});
+  toast(full ? 'Rehaciendo catálogo completo (~1 min)…' : 'Buscando novedades…');
+  clearTimeout(catTimer); catTimer = setTimeout(catalogPoll, 1500);
+}
+catalogPoll();
+
+// ── SIDEBAR SECTIONS TOGGLE ───────────────────────
+function toggleSec(name) {
+  const hdr  = document.getElementById(`sec-hdr-${name}`);
+  const body = document.getElementById(`sec-${name}`);
+  const open = body.classList.toggle('open');
+  hdr.classList.toggle('open', open);
+  if (name === 'mazos' && open) initMazos();
+  if (name === 'cdn'   && open) initCdn();
+  if (name === 'cdnmap' && open) cmInit();
+  if (name === 'media' && open) fillMediaSelectors();
+  if (name === 'gorila' && open) gorilaInit();
+  if (name === 'serena' && open) serenaInit();
+}
+
+// ── BIBLIOTECA DE MEDIOS (todas las imágenes de un mes, por día) ──────────────
+function fillMediaSelectors() {
+  const ySel = document.getElementById('mediaYear');
+  const mSel = document.getElementById('mediaMonth');
+  if (ySel.options.length) return;   // ya cargado
+  const now = new Date();
+  for (let y = now.getFullYear(); y >= 2019; y--) ySel.add(new Option(y, y));
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  meses.forEach((m, i) => mSel.add(new Option(m, String(i + 1).padStart(2, '0'))));
+  ySel.value = now.getFullYear();
+  mSel.value = String(now.getMonth() + 1).padStart(2, '0');
+}
+
+function loadMediaMonth() {
+  if (sse) { sse.close(); sse = null; }
+  const year  = document.getElementById('mediaYear').value;
+  const month = document.getElementById('mediaMonth').value;
+  const mesNombre = document.getElementById('mediaMonth').selectedOptions[0].text;
+  const label = `Biblioteca · ${mesNombre} ${year}`;
+
+  activeSource   = 'media';
+  activeMonth    = {year, month, label, key:`media/${year}/${month}`};
+  activeCasaColl = null;
+  allImages = []; postGroups = []; selected.clear(); updateBadge();
+  document.getElementById('btnSort').style.display = 'none';
+
+  renderBlogSidebar(); renderCasaSidebar();
+  setBreadcrumb([{label:'Biblioteca'}, {label:`${mesNombre} ${year}`}]);
+  document.getElementById('mainTitle').textContent = label;
+  document.getElementById('mainSub').textContent   = 'Cargando biblioteca de medios...';
+  setStatus('Cargando...');
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML =
+    Array(12).fill('<div class="skel"></div>').join('');
+
+  const pbWrap = document.getElementById('pbWrap');
+  const pb     = document.getElementById('pb');
+  pbWrap.style.display = 'block'; pb.style.width = '0%';
+
+  let totalDias = 0, doneDias = 0;
+  sse = new EventSource(`/api/blog/media-month/stream?year=${year}&month=${month}`);
+
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'loading') {
+      document.getElementById('mainSub').textContent =
+        `Leyendo biblioteca… página ${msg.page}/${msg.pages}`;
+    }
+    if (msg.type === 'total') {
+      totalDias = msg.dias || 0;
+      document.getElementById('btnAll').disabled = msg.total === 0;
+      document.getElementById('mainSub').textContent =
+        `${msg.total} imágenes en ${totalDias} días`;
+    }
+    if (msg.type === 'post_done') {
+      doneDias++;
+      if (totalDias) pb.style.width = Math.round(doneDias / totalDias * 100) + '%';
+      const radar = msg.radar || [];
+      if ((msg.images && msg.images.length) || radar.length) {
+        addPostImages(msg.post_title, msg.post_date, msg.post_url, msg.images || [], radar);
+        allImages.push(...(msg.images || []), ...radar);
+      }
+      document.getElementById('mainSub').textContent =
+        `${doneDias}/${totalDias} días · ${allImages.length} imágenes`;
+      setStatus(`${allImages.length} imágenes`);
+    }
+    if (msg.type === 'finished') {
+      sse.close(); sse = null;
+      pbWrap.style.display = 'none';
+      setStatus(`${allImages.length} imgs — ${label}`);
+      document.getElementById('mainSub').textContent =
+        `${allImages.length} imágenes en ${totalDias} días`;
+      if (!allImages.length) {
+        document.getElementById('gridArea').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+      }
+    }
+  };
+  sse.onerror = () => {
+    if (sse) { sse.close(); sse = null; }
+    document.getElementById('pbWrap').style.display = 'none';
+    setStatus('Error'); toast('Error al cargar la biblioteca de medios');
+  };
+}
+
+// ── BLOG SIDEBAR ──────────────────────────────────
+function renderBlogSidebar() {
+  const el = document.getElementById('sidebarScroll');
+  if (!yearsData.length) {
+    el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#e53935;font-size:.8rem">Sin datos.</div>';
+    return;
+  }
+  el.innerHTML = yearsData.map(y => `
+    <div class="year-row">
+      <button class="year-btn ${activeYear === y.year ? 'open':''}" onclick="toggleYear('${y.year}')">
+        <span>${y.year}</span>
+        <span class="arrow">▶</span>
+      </button>
+      <div class="months-wrap ${activeYear === y.year ? 'open':''}">
+        ${y.months.map(m => `
+          <button class="month-btn ${activeSource==='blog' && activeMonth?.key === m.key ? 'active':''}"
+                  id="mb-${m.key}"
+                  onclick="selectMonth('${m.year}','${m.month}','${m.label}','${m.key}')">
+            <span>${m.label.split(' ')[0]}</span>
+            <span class="m-count" id="mc-${m.key}">—</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleYear(year) {
+  activeYear = activeYear === year ? null : year;
+  renderBlogSidebar();
+}
+
+// ── CASAMYL SIDEBAR ───────────────────────────────
+function renderCasaSidebar() {
+  const el = document.getElementById('casaScroll');
+  if (!casaCollections.length) {
+    el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#e53935;font-size:.8rem">Sin colecciones.</div>';
+    return;
+  }
+  el.innerHTML = casaCollections.map(c => {
+    const active = activeSource==='casa' && activeCasaColl === c.handle ? 'active' : '';
+    const safeTitle = c.title.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    return `<button class="coll-btn ${active}" id="cb-${c.handle}"
+      data-handle="${c.handle}" data-title="${safeTitle}"
+      onclick="selectCasaCollection(this.dataset.handle, this.dataset.title)">${safeTitle}</button>`;
+  }).join('');
+}
+
+function selectCasaCollection(handle, title) {
+  if (sse) { sse.close(); sse = null; }
+  activeSource    = 'casa';
+  activeCasaColl  = handle;
+  activeMonth     = { year: 'casa', month: handle, label: title, key: handle };
+  allImages       = [];
+  selected.clear();
+  updateBadge();
+
+  renderCasaSidebar();
+  setBreadcrumb([{label: 'CasaMYL', fn:"toggleSec('casa')"}, {label: title}]);
+  document.getElementById('mainTitle').textContent = title;
+  document.getElementById('mainSub').textContent   = 'Cargando productos...';
+  setStatus('Cargando...');
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML =
+    Array(12).fill('<div class="skel"></div>').join('');
+
+  const pbWrap = document.getElementById('pbWrap');
+  const pb     = document.getElementById('pb');
+  pbWrap.style.display = 'block';
+  pb.style.width = '0%';
+
+  let totalProducts = 0, doneProducts = 0;
+  sse = new EventSource(`/api/casa/collection/images/stream?collection=${encodeURIComponent(handle)}`);
+
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'total') {
+      totalProducts = msg.total;
+      document.getElementById('mainSub').textContent =
+        `0 / ${totalProducts} productos · 0 imágenes`;
+      document.getElementById('btnAll').disabled = false;
+    }
+    if (msg.type === 'post_done') {
+      doneProducts++;
+      pb.style.width = Math.round((doneProducts / totalProducts) * 100) + '%';
+      if (msg.images && msg.images.length) {
+        addPostImages(msg.post_title, msg.post_date, msg.post_url, msg.images);
+        allImages.push(...msg.images);
+      }
+      document.getElementById('mainSub').textContent =
+        `${doneProducts} / ${totalProducts} productos · ${allImages.length} imágenes`;
+      setStatus(`${allImages.length} imágenes`);
+    }
+    if (msg.type === 'finished') {
+      sse.close(); sse = null;
+      pbWrap.style.display = 'none';
+      setStatus(`${allImages.length} imgs — ${title}`);
+      document.getElementById('mainSub').textContent =
+        `${totalProducts} productos · ${allImages.length} imágenes totales`;
+      if (!allImages.length) {
+        document.getElementById('gridArea').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+      }
+    }
+  };
+  sse.onerror = () => {
+    if (sse) { sse.close(); sse = null; }
+    document.getElementById('pbWrap').style.display = 'none';
+    setStatus('Error'); toast('Error al cargar colección');
+  };
+}
+
+// ── CASAMYL · CDN COMPLETO (mapa generado por casamyl_cdn_mapper.py) ─────────
+let cmItems = [], cmCatList = [], cmCat = 'all', cmLimit = 240, cmList = [];
+
+async function cmInit(force=false) {
+  if (cmItems.length && !force) return;
+  document.getElementById('cmCats').innerHTML =
+    '<div style="color:#4a5568;font-size:.75rem">Cargando mapa (la 1ª vez mide resoluciones)...</div>';
+  try {
+    const j = await (await fetch('/api/cdnmap')).json();
+    if (!j.success) throw new Error(j.error);
+    cmItems = j.data; cmCatList = j.cats;
+    cmRenderCats();
+    cmShow();
+  } catch (e) {
+    document.getElementById('cmCats').innerHTML =
+      `<div style="color:#f87171;font-size:.72rem">${escHtml(e.message || 'Error cargando mapa')}</div>`;
+  }
+}
+
+function cmSetCat(key) {
+  cmCat = key;
+  cmRenderCats();
+  cmShow();
+}
+
+function cmRenderCats() {
+  const count = k => cmItems.filter(i => i.cats.includes(k)).length;
+  const pill = (key, label, n) => `<button class="cdn-pill ${cmCat === key ? 'active' : ''}"
+      data-key="${key}" onclick="cmSetCat(this.dataset.key)">${label}<span class="cdn-cnt">${n}</span></button>`;
+  document.getElementById('cmCats').innerHTML =
+    pill('all', 'Todo', cmItems.length) +
+    cmCatList.map(c => [c, count(c.key)]).filter(([, n]) => n)
+             .map(([c, n]) => pill(c.key, c.label, n)).join('');
+}
+
+function cmFilter() {
+  const words  = document.getElementById('cmSearch').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const minS   = +document.getElementById('cmMin').value;
+  const folder = document.getElementById('cmFolder').value;
+  const sort   = document.getElementById('cmSort').value;
+  const list = cmItems.filter(i =>
+    (cmCat === 'all' || i.cats.includes(cmCat)) &&
+    (!folder || i.folder === folder) &&
+    (!minS || Math.max(i.w, i.h) >= minS) &&
+    words.every(w => i.name.toLowerCase().includes(w)));
+  const cmp = {
+    name: (a, b) => a.name.localeCompare(b.name, 'es', {numeric: true, sensitivity: 'base'}),
+    res:  (a, b) => b.w * b.h - a.w * a.h,
+    size: (a, b) => b.bytes - a.bytes,
+  }[sort];
+  return list.sort(cmp);
+}
+
+function cmFmtBytes(n) {
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+}
+
+// Entra a la vista (si venía de otra fuente) y re-dibuja con los filtros actuales
+function cmShow() {
+  if (!cmItems.length) { cmInit(); return; }
+  if (activeSource !== 'cdnmap') {
+    if (sse) { sse.close(); sse = null; }
+    activeSource = 'cdnmap'; activeCasaColl = null;
+    activeMonth = { year: 'cdnmap', month: '', label: 'CasaMYL CDN', key: 'casamyl_cdn' };
+    selected.clear(); updateBadge();
+    mazosShowControls(false);
+    document.getElementById('btnSort').style.display = 'none';
+    renderBlogSidebar(); renderCasaSidebar();
+  }
+  cmList = cmFilter();
+  cmLimit = 240;
+  allImages = cmList.map(i => ({ url: i.path }));   // "Sel. todo" = todo lo filtrado
+  const catLbl = cmCat === 'all' ? 'Todo' : (cmCatList.find(c => c.key === cmCat)?.label || cmCat);
+  setBreadcrumb([{label: 'CasaMYL · CDN', fn: "cmSetCat('all')"}, {label: catLbl}]);
+  document.getElementById('mainTitle').textContent = `CasaMYL CDN · ${catLbl}`;
+  document.getElementById('mainSub').textContent =
+    `${cmList.length} de ${cmItems.length} archivos · ${cmFmtBytes(cmList.reduce((s, i) => s + i.bytes, 0))}`;
+  document.getElementById('btnAll').disabled = !cmList.length;
+  document.getElementById('emptyState').style.display = cmList.length ? 'none' : 'flex';
+  document.getElementById('gridArea').style.display   = cmList.length ? 'block' : 'none';
+  setStatus(`${cmList.length} imágenes`);
+  cmRenderGrid();
+}
+
+function cmRenderGrid() {
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = cmList.slice(0, cmLimit).map(i => {
+    const sel = selected.has(i.path);
+    const res = i.w ? `${i.w}×${i.h}` : '?';
+    const hd  = Math.max(i.w, i.h) >= 1200 ? 'hd' : '';
+    const p   = encodeURIComponent(i.path);
+    return `<div class="img-card cm ${sel ? 'selected' : ''}" data-url="${escHtml(i.path)}"
+        onclick="toggle(this.dataset.url)" title="${escHtml(i.path)}">
+      <div class="img-thumb">
+        <img src="/api/cdnmap/thumb?p=${p}" loading="lazy" alt=""
+             onload="this.classList.add('loaded')"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="img-err" style="display:none">No disponible</div>
+        ${sel ? '<div class="chk">✓</div>' : ''}
+        <a class="cm-open" href="/api/cdnmap/file?p=${p}" target="_blank"
+           onclick="event.stopPropagation()" title="Abrir original">↗</a>
+      </div>
+      <div class="img-name">${escHtml(i.name)}</div>
+      <div class="cm-meta"><span class="${hd}">${res}</span><span>${cmFmtBytes(i.bytes)}</span></div>
+    </div>`;
+  }).join('') + (cmList.length > cmLimit
+    ? `<button class="btn btn-ghost cm-more" onclick="cmLimit += 240; cmRenderGrid()">
+         Mostrar más (${cmList.length - cmLimit} restantes)</button>` : '');
+}
+
+async function cmDownload() {
+  const n = selected.size;
+  if (!n) return;
+  document.getElementById('btnDl').disabled = true;
+  toast(`Preparando ZIP con ${n} imagen${n > 1 ? 'es' : ''}...`);
+  setStatus('Descargando...');
+  try {
+    const r = await fetch('/api/cdnmap/zip', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({paths: Array.from(selected)}),
+    });
+    if (!r.ok) throw new Error();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(await r.blob());
+    a.download = zipNameFor(document.getElementById('mainTitle').textContent,
+                            `casamyl_cdn_${Date.now()}`) + '.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(`✓ ${n} imagen${n > 1 ? 'es' : ''} descargada${n > 1 ? 's' : ''}`);
+    setStatus('Descarga completa');
+  } catch {
+    toast('Error al descargar'); setStatus('Error');
+  } finally {
+    updateBadge();
+  }
+}
+
+async function cmProbe() {
+  const name = document.getElementById('cmProbeName').value.trim();
+  const msg  = document.getElementById('cmProbeMsg');
+  if (!name) return;
+  msg.style.color = '#4a5568';
+  msg.textContent = 'Probando variantes...';
+  try {
+    const j = await (await fetch('/api/cdnmap/probe', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name}),
+    })).json();
+    if (!j.success) throw new Error(j.error);
+    if (!j.hits.length) {
+      msg.textContent = `Nada encontrado (${j.tested} variantes probadas)`;
+      return;
+    }
+    msg.style.color = '#10b981';
+    msg.textContent = `✓ ${j.hits.length} encontrada(s) de ${j.tested} variantes`;
+    await cmInit(true);
+    document.getElementById('cmSearch').value = name;
+    cmSetCat('all');
+  } catch (e) {
+    msg.style.color = '#f87171';
+    msg.textContent = e.message || 'Error en la sonda';
+  }
+}
+
+// ── GORILATCG ─────────────────────────────────────
+// Colección (Bsale) → sub-colecciones por el 'notice' del producto
+// (ej. 'Shogun 5 "Onna-Musha"'). El servidor agrupa y ordena.
+let gorilaColls = [], gorilaGroups = {}, gorilaOpen = null, gorilaActive = null;
+
+async function gorilaInit() {
+  if (gorilaColls.length) return;
+  try {
+    const j = await (await fetch('/api/gorila/collections')).json();
+    gorilaColls = j.data || [];
+    renderGorilaSidebar();
+  } catch (e) {
+    document.getElementById('gorilaScroll').innerHTML =
+      '<div style="padding:1rem;text-align:center;color:#e53935;font-size:.75rem">Error cargando colecciones</div>';
+  }
+}
+
+function renderGorilaSidebar() {
+  const el = document.getElementById('gorilaScroll');
+  if (!gorilaColls.length) {
+    el.innerHTML = '<div style="padding:1rem;text-align:center;color:#e53935;font-size:.75rem">Sin colecciones.</div>';
+    return;
+  }
+  const isAct = (slug, g) => activeSource === 'gorila' && gorilaActive?.slug === slug && gorilaActive?.group === g;
+  el.innerHTML = gorilaColls.map((c, ci) => {
+    const open = gorilaOpen === c.slug;
+    const groups = gorilaGroups[c.slug];
+    let inner = '';
+    if (open && groups === 'loading')
+      inner = '<div style="padding:.6rem 1.6rem;color:#4a5568;font-size:.72rem"><span class="m-loading"></span> Leyendo productos…</div>';
+    else if (open && groups) {
+      const total = groups.reduce((s, g) => s + g.images.length, 0);
+      inner = `<button class="month-btn ${isAct(c.slug, null) ? 'active' : ''}" onclick="selectGorila(${ci}, -1)">
+          <span class="g-name"><b>Todo</b></span><span class="m-count">${total}</span></button>` +
+        groups.map((g, gi) => `<button class="month-btn ${isAct(c.slug, g.name) ? 'active' : ''}"
+            title="${escHtml(g.name)}" onclick="selectGorila(${ci}, ${gi})">
+          <span class="g-name">${escHtml(g.name)}</span><span class="m-count">${g.images.length}</span></button>`).join('');
+    }
+    return `<div class="year-row">
+      <button class="year-btn ${open ? 'open' : ''}" onclick="toggleGorilaColl(${ci})">
+        <span>${escHtml(c.title)}</span><span class="arrow">▶</span></button>
+      <div class="months-wrap ${open ? 'open' : ''}">${inner}</div></div>`;
+  }).join('');
+}
+
+async function loadGorilaColl(slug) {
+  if (gorilaGroups[slug] && gorilaGroups[slug] !== 'loading') return gorilaGroups[slug];
+  gorilaGroups[slug] = 'loading';
+  renderGorilaSidebar();
+  try {
+    const j = await (await fetch(`/api/gorila/collection?slug=${encodeURIComponent(slug)}`)).json();
+    if (!j.success) throw new Error(j.error);
+    gorilaGroups[slug] = j.data;
+  } catch (e) {
+    delete gorilaGroups[slug];
+    toast('GorilaTCG: ' + (e.message || 'error'));
+  }
+  renderGorilaSidebar();
+  return gorilaGroups[slug];
+}
+
+function toggleGorilaColl(ci) {
+  const slug = gorilaColls[ci].slug;
+  gorilaOpen = gorilaOpen === slug ? null : slug;
+  renderGorilaSidebar();
+  if (gorilaOpen) loadGorilaColl(slug);
+}
+
+// gi = -1 → toda la colección (un separador por sub-colección)
+function selectGorila(ci, gi) {
+  if (sse) { sse.close(); sse = null; }
+  const c = gorilaColls[ci], groups = gorilaGroups[c.slug];
+  if (!Array.isArray(groups)) return;
+  const shown = gi < 0 ? groups : [groups[gi]];
+  const label = gi < 0 ? c.title : groups[gi].name;
+  activeSource = 'gorila'; activeCasaColl = null;
+  gorilaActive = {slug: c.slug, group: gi < 0 ? null : groups[gi].name};
+  activeMonth  = {year: 'gorila', month: c.slug, label, key: `gorila_${c.slug}`};
+  allImages = []; postGroups = []; selected.clear(); updateBadge();
+  mazosShowControls(false);
+  document.getElementById('btnSort').style.display = 'none';
+  renderGorilaSidebar(); renderSerenaSidebar(); renderBlogSidebar(); renderCasaSidebar();
+  setBreadcrumb(gi < 0
+    ? [{label: 'GorilaTCG', fn: "toggleSec('gorila')"}, {label: escHtml(c.title)}]
+    : [{label: 'GorilaTCG', fn: "toggleSec('gorila')"},
+       {label: escHtml(c.title), fn: `selectGorila(${ci}, -1)`}, {label: escHtml(label)}]);
+  document.getElementById('mainTitle').textContent = label;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML = '';
+  shown.forEach(g => {
+    addPostImages(escHtml(g.name), '', '', g.images);
+    allImages.push(...g.images);
+  });
+  document.getElementById('mainSub').textContent =
+    `${allImages.length} cartas` + (gi < 0 ? ` en ${groups.length} sub-colecciones` : ` · ${c.title}`);
+  document.getElementById('btnAll').disabled = !allImages.length;
+  setStatus(`${allImages.length} imágenes — ${label}`);
+}
+
+// URL de producto → abre su colección y sub-colección
+async function gorilaLocate() {
+  const url = document.getElementById('gorilaUrl').value.trim();
+  if (!url) return;
+  await gorilaInit();
+  setStatus('Buscando producto...');
+  toast('Buscando el producto en las colecciones (la 1ª vez tarda)...');
+  try {
+    const j = await (await fetch(`/api/gorila/locate?url=${encodeURIComponent(url)}`)).json();
+    if (!j.success) throw new Error(j.error);
+    const ci = gorilaColls.findIndex(c => c.slug === j.slug);
+    gorilaOpen = j.slug;
+    const groups = await loadGorilaColl(j.slug);
+    const gi = (groups || []).findIndex(g => g.name === j.group);
+    if (ci >= 0 && gi >= 0) selectGorila(ci, gi);
+  } catch (e) {
+    toast(e.message || 'No encontrado'); setStatus('Listo');
+  }
+}
+
+// ── MYLSERENA ─────────────────────────────────────
+// Bloque (PB/PE/IMP/FX) → edición → grupos por sub-categoría de la tienda
+// (Jumpseller). El servidor arma los grupos; aquí solo se navega.
+let serenaBloques = [], serenaGroups = {}, serenaOpenB = null, serenaOpenEd = null, serenaActive = null;
+
+async function serenaInit() {
+  if (serenaBloques.length) return;
+  try {
+    const j = await (await fetch('/api/serena/bloques')).json();
+    serenaBloques = j.data || [];
+    renderSerenaSidebar();
+  } catch (e) {
+    document.getElementById('serenaScroll').innerHTML =
+      '<div style="padding:1rem;text-align:center;color:#e53935;font-size:.75rem">Error cargando bloques</div>';
+  }
+}
+
+function renderSerenaSidebar() {
+  const el = document.getElementById('serenaScroll');
+  if (!serenaBloques.length) {
+    el.innerHTML = '<div style="padding:1rem;text-align:center;color:#e53935;font-size:.75rem">Sin bloques.</div>';
+    return;
+  }
+  const isAct = (path, g) => activeSource === 'serena' && serenaActive?.path === path && serenaActive?.group === g;
+  el.innerHTML = serenaBloques.map((b, bi) => {
+    const openB = serenaOpenB === b.key;
+    const eds = !openB ? '' : b.editions.map((e, ei) => {
+      const open = serenaOpenEd === e.path, groups = serenaGroups[e.path];
+      let inner = '';
+      if (open && groups === 'loading')
+        inner = '<div style="padding:.6rem 1.6rem;color:#4a5568;font-size:.72rem"><span class="m-loading"></span> Leyendo productos…</div>';
+      else if (open && groups) {
+        const total = groups.reduce((s, g) => s + g.images.length, 0);
+        inner = `<button class="month-btn ${isAct(e.path, null) ? 'active' : ''}" onclick="selectSerena(${bi}, ${ei}, -1)">
+            <span class="g-name"><b>Todo</b></span><span class="m-count">${total}</span></button>` +
+          groups.map((g, gi) => `<button class="month-btn ${isAct(e.path, g.name) ? 'active' : ''}"
+              title="${escHtml(g.name)}" onclick="selectSerena(${bi}, ${ei}, ${gi})">
+            <span class="g-name">${escHtml(g.name)}</span><span class="m-count">${g.images.length}</span></button>`).join('');
+      }
+      return `<div class="year-row srn-ed">
+        <button class="year-btn ${open ? 'open' : ''}" onclick="toggleSerenaEd(${bi}, ${ei})">
+          <span>${escHtml(e.title)}</span><span class="arrow">▶</span></button>
+        <div class="months-wrap ${open ? 'open' : ''}">${inner}</div></div>`;
+    }).join('');
+    return `<div class="year-row">
+      <button class="year-btn ${openB ? 'open' : ''}" onclick="toggleSerenaBloque(${bi})">
+        <span>${escHtml(b.title)}</span><span class="arrow">▶</span></button>
+      <div class="months-wrap ${openB ? 'open' : ''}">${eds}</div></div>`;
+  }).join('');
+}
+
+async function loadSerenaEd(path) {
+  if (serenaGroups[path] && serenaGroups[path] !== 'loading') return serenaGroups[path];
+  serenaGroups[path] = 'loading';
+  renderSerenaSidebar();
+  try {
+    const j = await (await fetch(`/api/serena/edition?path=${encodeURIComponent(path)}`)).json();
+    if (!j.success) throw new Error(j.error);
+    serenaGroups[path] = j.data;
+  } catch (e) {
+    delete serenaGroups[path];
+    toast('MylSerena: ' + (e.message || 'error'));
+  }
+  renderSerenaSidebar();
+  return serenaGroups[path];
+}
+
+function toggleSerenaBloque(bi) {
+  const key = serenaBloques[bi].key;
+  serenaOpenB = serenaOpenB === key ? null : key;
+  renderSerenaSidebar();
+}
+
+function toggleSerenaEd(bi, ei) {
+  const path = serenaBloques[bi].editions[ei].path;
+  serenaOpenEd = serenaOpenEd === path ? null : path;
+  renderSerenaSidebar();
+  if (serenaOpenEd) loadSerenaEd(path);
+}
+
+// gi = -1 → toda la edición (un separador por grupo)
+function selectSerena(bi, ei, gi) {
+  if (sse) { sse.close(); sse = null; }
+  const b = serenaBloques[bi], e = b.editions[ei], groups = serenaGroups[e.path];
+  if (!Array.isArray(groups)) return;
+  const shown = gi < 0 ? groups : [groups[gi]];
+  const label = gi < 0 ? e.title : groups[gi].name;
+  activeSource = 'serena'; activeCasaColl = null;
+  serenaActive = {path: e.path, group: gi < 0 ? null : groups[gi].name};
+  activeMonth  = {year: 'serena', month: e.path,
+                  label: gi < 0 ? `${b.key.toUpperCase()} ${label}` : `${e.title} ${label}`,
+                  key: `serena_${e.path.replaceAll('/', '_')}`};
+  allImages = []; postGroups = []; selected.clear(); updateBadge();
+  mazosShowControls(false);
+  document.getElementById('btnSort').style.display = 'none';
+  renderSerenaSidebar(); renderGorilaSidebar(); renderBlogSidebar(); renderCasaSidebar();
+  const crumbs = [{label: 'MylSerena', fn: "toggleSec('serena')"},
+                  {label: escHtml(b.title), fn: `toggleSerenaBloque(${bi})`}];
+  setBreadcrumb(gi < 0
+    ? [...crumbs, {label: escHtml(e.title)}]
+    : [...crumbs, {label: escHtml(e.title), fn: `selectSerena(${bi}, ${ei}, -1)`}, {label: escHtml(label)}]);
+  document.getElementById('mainTitle').textContent = label;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML = '';
+  shown.forEach(g => {
+    addPostImages(escHtml(g.name), '', '', g.images);
+    allImages.push(...g.images);
+  });
+  document.getElementById('mainSub').textContent =
+    `${allImages.length} cartas` + (gi < 0 ? ` en ${groups.length} grupos · ${b.title}` : ` · ${e.title}`);
+  document.getElementById('btnAll').disabled = !allImages.length;
+  setStatus(`${allImages.length} imágenes — ${label}`);
+}
+
+// URL de producto → abre su bloque, edición y grupo
+async function serenaLocate() {
+  const url = document.getElementById('serenaUrl').value.trim();
+  if (!url) return;
+  await serenaInit();
+  setStatus('Buscando producto...');
+  try {
+    const j = await (await fetch(`/api/serena/locate?url=${encodeURIComponent(url)}`)).json();
+    if (!j.success) throw new Error(j.error);
+    const bi = serenaBloques.findIndex(b => b.key === j.bloque);
+    const ei = bi < 0 ? -1 : serenaBloques[bi].editions.findIndex(e => e.path === j.path);
+    serenaOpenB = j.bloque; serenaOpenEd = j.path;
+    const groups = await loadSerenaEd(j.path);
+    const gi = (groups || []).findIndex(g => g.name === j.group);
+    if (ei >= 0 && gi >= 0) selectSerena(bi, ei, gi);
+  } catch (e) {
+    toast(e.message || 'No encontrado'); setStatus('Listo');
+  }
+}
+
+// ── FACEBOOK ──────────────────────────────────────
+let fbAlbums = [], fbActive = null, fbPageSlug = '', fbJob = null;
+
+function fbMsg(text, color='#4a5568') {
+  document.getElementById('fbScroll').innerHTML =
+    `<div style="padding:1rem;text-align:center;color:${color};font-size:.75rem">${escHtml(text)}</div>`;
+}
+
+async function loadFbAlbums(refresh=false) {
+  fbPageSlug = document.getElementById('fbPage').value.trim() || 'CartotecaMyL';
+  fbMsg('Abriendo Facebook y leyendo álbumes... (~20 s)');
+  try {
+    const r = await fetch(`/api/fb/albums?page=${encodeURIComponent(fbPageSlug)}${refresh?'&refresh=1':''}`);
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+    fbAlbums = j.data;
+    renderFbSidebar();
+  } catch (e) { fbMsg(e.message, '#e53935'); }
+}
+
+function renderFbSidebar() {
+  if (!fbAlbums.length) { fbMsg('Sin álbumes.'); return; }
+  document.getElementById('fbScroll').innerHTML = fbAlbums.map((a, i) => {
+    const active = activeSource==='fb' && fbActive?.set === a.set ? 'active' : '';
+    return `<button class="coll-btn ${active}" onclick="selectFbAlbum(${i})">${escHtml(a.title)}</button>`;
+  }).join('') + `<div style="padding:.4rem .6rem;font-size:.68rem"><a href="#" style="color:#4a5568"
+     onclick="loadFbAlbums(true);return false">↻ recargar álbumes</a></div>`;
+}
+
+async function selectFbAlbum(i, refresh=false) {
+  if (sse) { sse.close(); sse = null; }
+  const a = fbAlbums[i];
+  activeSource = 'fb'; fbActive = a; activeCasaColl = null;
+  activeMonth  = { year: 'fb', month: a.folder, label: a.title, key: a.folder };
+  allImages = []; selected.clear(); updateBadge();
+  renderFbSidebar(); renderCasaSidebar(); renderBlogSidebar();
+  setBreadcrumb([{label: 'Facebook', fn:"toggleSec('fb')"}, {label: a.title}]);
+  document.getElementById('mainTitle').textContent = a.title;
+  document.getElementById('mainSub').textContent   = 'Leyendo fotos del álbum (hace scroll en Facebook)...';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML = Array(12).fill('<div class="skel"></div>').join('');
+  setStatus('Cargando...');
+  try {
+    const q = new URLSearchParams({page: fbPageSlug, href: a.href, folder: a.folder});
+    if (refresh) q.set('refresh', '1');
+    const r = await fetch('/api/fb/photos?' + q);
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+    if (fbActive !== a) return;   // el usuario cambió de álbum mientras cargaba
+    // n = orden de subida (1 = la más antigua); el servidor ya las numera
+    allImages = j.data.map(p => ({
+      url: p.fbid, thumb: p.thumb, alt: p.fbid, fbid: p.fbid, set: p.set, n: p.n,
+      filename: `${p.saved ? '✓ ' : ''}#${String(p.n).padStart(4, '0')} · ${p.fbid}`,
+    }));
+    document.getElementById('imgGrid').innerHTML = '';
+    const saved = j.data.filter(p => p.saved).length;
+    addPostImages(escHtml(a.title), `${saved} ya en disco`, a.href, allImages);
+    document.getElementById('mainSub').textContent =
+      `${allImages.length} fotos · ${saved} ya descargadas (✓)`;
+    document.getElementById('btnAll').disabled = false;
+    setStatus(`${allImages.length} fotos — ${a.title}`);
+  } catch (e) {
+    document.getElementById('gridArea').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+    setStatus('Error'); toast(e.message);
+  }
+}
+
+async function downloadFbSelected() {
+  if (fbJob) { toast('Ya hay una descarga en curso'); return; }
+  const photos = allImages.filter(i => selected.has(i.url)).map(i => ({fbid: i.fbid, set: i.set, n: i.n}));
+  if (!photos.length) return;
+  const album = fbActive;
+  const zipName = zipNameFor(album.title, '');
+  document.getElementById('btnDl').disabled = true;
+  const pbWrap = document.getElementById('pbWrap'), pb = document.getElementById('pb');
+  pbWrap.style.display = 'block'; pb.style.width = '0%';
+  try {
+    const r = await fetch('/api/fb/save', {method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({page: fbPageSlug, folder: album.folder, photos})});
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+    fbJob = j.job;
+    toast(`Descargando ${photos.length} fotos en alta resolución (4 en paralelo)...`);
+    let st, fails = 0;
+    while (true) {
+      await new Promise(res => setTimeout(res, 1500));
+      try {
+        st = await (await fetch(`/api/fb/job/${fbJob}`)).json();
+        fails = 0;
+      } catch (e) {
+        // Un poll fallido no mata la descarga: el job sigue en el servidor
+        if (++fails >= 20) throw new Error('El servidor no responde');
+        continue;
+      }
+      if (!st.success) throw new Error(st.error);
+      pb.style.width = Math.round(st.done / st.total * 100) + '%';
+      setStatus(`FB ${st.done}/${st.total} · nuevas ${st.ok} · ya estaban ${st.cached} · err ${st.err}`);
+      if (st.state !== 'running') break;
+    }
+    if (st.state === 'error') throw new Error(st.error);
+    if (st.ok + st.cached > 0) {
+      const a = document.createElement('a');
+      a.href = `/api/fb/job/${fbJob}/zip` + (zipName ? `?name=${encodeURIComponent(zipName)}` : '');
+      a.click();
+    }
+    toast(`✓ ${st.ok + st.cached} fotos (también en ${st.folder})`);
+    if (fbActive === album) selectFbAlbum(fbAlbums.indexOf(album));   // refresca los ✓
+  } catch (e) {
+    toast('Error: ' + e.message); setStatus('Error');
+  } finally {
+    fbJob = null; pbWrap.style.display = 'none'; updateBadge();
+  }
+}
+
+async function fbLogin() {
+  await fetch('/api/fb/login', {method: 'POST'});
+  fbMsg('Se abrió una ventana de Chromium: inicia sesión ahí. Se cierra sola al detectar la sesión.');
+  const poll = setInterval(async () => {
+    const j = await (await fetch('/api/fb/login')).json();
+    if (j.state === 'waiting') return;
+    clearInterval(poll);
+    if (j.state === 'ok') { toast('✓ Sesión de Facebook guardada'); loadFbAlbums(); }
+    else fbMsg('No se detectó la sesión: ' + (j.error || 'reintenta'), '#e53935');
+  }, 2000);
+}
+
+// ── SELECCIONAR MES → cargar TODAS las imágenes ───
+function selectMonth(year, month, label, key) {
+  if (sse) { sse.close(); sse = null; }
+
+  activeSource = 'blog';
+  activeMonth  = {year, month, label, key};
+  activeCasaColl = null;
+  allImages    = [];
+  postGroups   = [];
+  selected.clear();
+  updateBadge();
+  document.getElementById('btnSort').style.display = 'none';
+
+  renderBlogSidebar();
+  renderCasaSidebar();
+  setBreadcrumb([{label: year, fn:`toggleYear('${year}')`}, {label}]);
+  document.getElementById('mainTitle').textContent = label;
+  document.getElementById('mainSub').textContent   = 'Cargando posts e imágenes...';
+  setStatus('Cargando...');
+
+  // Mostrar skeletons iniciales
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML =
+    Array(16).fill('<div class="skel"></div>').join('');
+
+  // Barra de progreso
+  const pbWrap = document.getElementById('pbWrap');
+  const pb     = document.getElementById('pb');
+  pbWrap.style.display = 'block';
+  pb.style.width = '0%';
+
+  // Contador de botón de mes
+  const mcEl = document.getElementById(`mc-${key}`);
+  if (mcEl) mcEl.innerHTML = '<span class="m-loading"></span>';
+
+  // SSE: recibir imágenes a medida que llegan
+  let totalPosts = 0, donePosts = 0;
+
+  sse = new EventSource(`/api/month/images/stream?year=${year}&month=${month}`);
+
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'total') {
+      totalPosts = msg.total;
+      document.getElementById('mainSub').textContent =
+        `0 / ${totalPosts} posts · cargando...`;
+    }
+
+    if (msg.type === 'post_done') {
+      donePosts++;
+      const pct = Math.round((donePosts / totalPosts) * 100);
+      pb.style.width = pct + '%';
+
+      const radar = msg.radar || [];
+      if ((msg.images && msg.images.length) || radar.length) {
+        postGroups.push({
+          title:  msg.post_title,
+          date:   msg.post_date,
+          url:    msg.post_url,
+          images: msg.images || [],
+          radar,
+        });
+      }
+
+      const buffered = postGroups.reduce((s, g) => s + g.images.length + g.radar.length, 0);
+      document.getElementById('mainSub').textContent =
+        `${donePosts} / ${totalPosts} posts · ${buffered} imágenes`;
+      setStatus(`cargando...`);
+
+      if (mcEl) mcEl.innerHTML = '<span class="m-loading"></span>';
+    }
+
+    if (msg.type === 'finished') {
+      sse.close(); sse = null;
+      pbWrap.style.display = 'none';
+
+      renderSortedGrid();
+      const imgCount = allImages.length;
+
+      setStatus(`${imgCount} imágenes en ${label}`);
+      document.getElementById('mainSub').textContent =
+        `${totalPosts} posts · ${imgCount} imágenes totales`;
+      document.getElementById('btnAll').disabled = imgCount === 0;
+      if (mcEl) mcEl.textContent = imgCount;
+
+      if (imgCount > 0) {
+        document.getElementById('btnSort').style.display = '';
+      } else {
+        document.getElementById('gridArea').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+        document.getElementById('emptyState').querySelector('svg').nextSibling.textContent =
+          'Este mes no tiene imágenes';
+      }
+    }
+  };
+
+  sse.onerror = () => {
+    if (sse) { sse.close(); sse = null; }
+    pbWrap.style.display = 'none';
+    setStatus('Error cargando imágenes');
+    toast('Error al conectar con el servidor');
+  };
+}
+
+// Agrega un bloque de imágenes de un post al grid; su radar (subidas que no se
+// usan en ningún post publicado) va debajo en una sección aparte.
+function addPostImages(postTitle, postDate, postUrl, images, radar = []) {
+  const grid = document.getElementById('imgGrid');
+
+  // Quitar skeletons si es el primer lote
+  if (grid.querySelector('.skel')) {
+    grid.innerHTML = '';
+  }
+  addImageGroup(grid, postTitle, `${images.length} img`, postDate, images, false);
+  if (radar.length)
+    addImageGroup(grid, `Radar — ${postTitle}`, `${radar.length} subidas sin usar`, '', radar, true);
+}
+
+function addImageGroup(grid, postTitle, countLabel, postDate, images, isRadar) {
+  // Separador con nombre del post
+  const sep = document.createElement('div');
+  sep.className = 'post-separator' + (isRadar ? ' radar-sep' : '');
+  const urls = images.map(i => i.url);
+  sep.innerHTML = `
+    <span class="post-sep-title" title="${escHtml(postTitle)}">${escHtml(postTitle)}</span>
+    <span class="post-sep-count">${countLabel}</span>
+    <span style="font-size:.65rem;color:#374151;flex-shrink:0">${postDate}</span>
+    ${images.length ? '<button class="post-sep-selbtn" title="Seleccionar todas las imágenes de esta sección">Sel. todas</button>' : ''}
+  `;
+  const selBtn = sep.querySelector('.post-sep-selbtn') || document.createElement('button');
+  const updateSelBtn = () => {
+    const allSel = urls.every(u => selected.has(u));
+    selBtn.textContent = allSel ? 'Desel.' : 'Sel. todas';
+    selBtn.classList.toggle('all-sel', allSel);
+  };
+  selBtn.onclick = () => {
+    const allSel = urls.every(u => selected.has(u));
+    urls.forEach(u => allSel ? selected.delete(u) : selected.add(u));
+    updateBadge();
+    // Actualizar tarjetas de este grupo
+    urls.forEach(u => {
+      const card = grid.querySelector(`.img-card[data-url="${CSS.escape(u)}"]`);
+      if (!card) return;
+      card.classList.toggle('selected', selected.has(u));
+      const chk = card.querySelector('.chk');
+      if (selected.has(u) && !chk) {
+        const d = document.createElement('div');
+        d.className = 'chk'; d.textContent = '✓';
+        card.querySelector('.img-thumb').appendChild(d);
+      } else if (!selected.has(u) && chk) chk.remove();
+    });
+    updateSelBtn();
+  };
+  grid.appendChild(sep);
+
+  // Tarjetas de imágenes
+  images.forEach(img => {
+    const card = document.createElement('div');
+    card.className = `img-card ${isRadar ? 'radar-card' : ''} ${selected.has(img.url) ? 'selected' : ''}`;
+    card.onclick = () => { toggle(img.url); updateSelBtn(); };
+    card.dataset.url = img.url;
+    card.innerHTML = `
+      <div class="img-thumb">
+        <img src="/api/proxy-image?url=${encodeURIComponent(img.thumb)}"
+             alt="${escHtml(img.alt || "")}" loading="lazy"
+             onload="this.classList.add('loaded')"
+             onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+        <div class="img-err" style="display:none">No disponible</div>
+        ${selected.has(img.url) ? '<div class="chk">✓</div>' : ''}
+      </div>
+      <div class="img-name" title="${escHtml(img.filename || "")}">${escHtml(img.filename || "")}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ── SELECCIÓN ─────────────────────────────────────
+function toggle(url) {
+  if (selected.has(url)) selected.delete(url);
+  else selected.add(url);
+  updateBadge();
+  // Solo actualizar la tarjeta específica
+  document.querySelectorAll('.img-card').forEach(card => {
+    if (card.dataset.url === url) {
+      card.classList.toggle('selected', selected.has(url));
+      const chk = card.querySelector('.chk');
+      if (selected.has(url)) {
+        if (!chk) {
+          const thumb = card.querySelector('.img-thumb');
+          const d = document.createElement('div');
+          d.className = 'chk'; d.textContent = '✓';
+          thumb.appendChild(d);
+        }
+      } else {
+        if (chk) chk.remove();
+      }
+    }
+  });
+}
+
+function selectAll() {
+  allImages.forEach(img => selected.add(img.url));
+  updateBadge();
+  document.querySelectorAll('.img-card').forEach(card => {
+    card.classList.add('selected');
+    if (!card.querySelector('.chk')) {
+      const d = document.createElement('div');
+      d.className = 'chk'; d.textContent = '✓';
+      card.querySelector('.img-thumb').appendChild(d);
+    }
+  });
+}
+
+function deselectAll() {
+  selected.clear();
+  updateBadge();
+  document.querySelectorAll('.img-card').forEach(card => {
+    card.classList.remove('selected');
+    card.querySelector('.chk')?.remove();
+  });
+}
+
+function updateBadge() {
+  const n = selected.size;
+  document.getElementById('badge').textContent = n;
+  document.getElementById('btnDl').disabled   = n === 0;
+  document.getElementById('btnNone').disabled = n === 0;
+}
+
+// ── NOMBRE DEL ZIP ────────────────────────────────
+// Si lo seleccionado es exactamente toda la vista (álbum / sección) o un grupo
+// completo (post, producto, sub-colección), el ZIP se llama como ese conjunto.
+// Si no, se usa `fallback` (el nombre genérico de siempre).
+function zipSafe(name) {
+  return (name || '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+
+function zipNameFor(viewLabel, fallback) {
+  const viewUrls = new Set(allImages.map(i => i.url).filter(Boolean));
+  if (viewLabel && selected.size === viewUrls.size && [...selected].every(u => viewUrls.has(u)))
+    return zipSafe(viewLabel) || fallback;
+  // Grupos dibujados con addPostImages: separador + sus tarjetas
+  let cur = null;
+  const groups = [];
+  for (const el of document.getElementById('imgGrid').children) {
+    if (el.classList.contains('post-separator')) {
+      cur = {title: el.querySelector('.post-sep-title')?.textContent || '', urls: []};
+      groups.push(cur);
+    } else if (cur && el.dataset.url) cur.urls.push(el.dataset.url);
+  }
+  const g = groups.find(g => g.urls.length === selected.size && g.urls.every(u => selected.has(u)));
+  if (g && g.title) {
+    const name = groups.length > 1 && viewLabel ? `${viewLabel} - ${g.title}` : g.title;
+    return zipSafe(name) || fallback;
+  }
+  return fallback;
+}
+
+// ── DESCARGA ──────────────────────────────────────
+async function downloadSelected() {
+  if (activeSource === 'mazos') { downloadMazosZip(); return; }
+  if (activeSource === 'fb')    { downloadFbSelected(); return; }
+  if (activeSource === 'cdnmap') { cmDownload(); return; }
+  if (!selected.size) return;
+  const n = selected.size;
+  document.getElementById('btnDl').disabled = true;
+  toast(`Preparando ZIP con ${n} imagen${n>1?'es':''}...`);
+  setStatus('Descargando...');
+
+  const zipName = zipNameFor(activeMonth?.label,
+    `myl_${activeMonth?.key?.replace('/','_') || Date.now()}`);
+  // Nombres de archivo propios (GorilaTCG/MylSerena: el nombre de la carta)
+  const names = {};
+  allImages.forEach(i => { if (i.dlname && selected.has(i.url)) names[i.url] = i.dlname; });
+
+  try {
+    const r = await fetch('/api/download-zip', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        urls: Array.from(selected),
+        names,
+        title: zipName
+      })
+    });
+    if (!r.ok) throw new Error();
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${zipName}.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(`✓ ${n} imagen${n>1?'es':''} descargada${n>1?'s':''}`);
+    setStatus('Descarga completa');
+  } catch {
+    toast('Error al descargar');
+    setStatus('Error');
+  } finally {
+    updateBadge();
+  }
+}
+
+// ── SORT GRID ─────────────────────────────────────
+function toggleSort() {
+  sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+  const btn = document.getElementById('btnSort');
+  btn.textContent = sortOrder === 'desc' ? 'Fecha ↓' : 'Fecha ↑';
+  renderSortedGrid();
+}
+
+function renderSortedGrid() {
+  const sorted = [...postGroups].sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return sortOrder === 'desc'
+      ? b.date.localeCompare(a.date)
+      : a.date.localeCompare(b.date);
+  });
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = '';
+  allImages = [];
+  sorted.forEach(g => {
+    addPostImages(g.title, g.date, g.url, g.images, g.radar);
+    allImages.push(...g.images, ...(g.radar || []));
+  });
+  updateBadge();
+}
+
+// ── HELPERS ───────────────────────────────────────
+function setBreadcrumb(items) {
+  const bc = document.getElementById('breadcrumb');
+  let html = '<span class="bc-link" onclick="resetAll()">Inicio</span>';
+  items.forEach((item, i) => {
+    html += '<span style="color:#2d3748"> › </span>';
+    if (i === items.length - 1)
+      html += `<span class="bc-cur">${item.label}</span>`;
+    else
+      html += `<span class="bc-link" onclick="${item.fn}">${item.label}</span>`;
+  });
+  bc.innerHTML = html;
+}
+
+function resetAll() {
+  if (sse)     { sse.close();     sse     = null; }
+  if (enumSse) { enumSse.close(); enumSse = null; }
+  if (mazosSse) { mazosSse.close(); mazosSse = null; }
+  const enumBtn = document.getElementById('enumRunBtn');
+  if (enumBtn) { enumBtn.textContent = 'Buscar imágenes'; enumBtn.disabled = false; }
+  document.getElementById('enumStatus').textContent = '';
+  activeCdnPrefix = null;
+  if (cdnInited) renderCdnGrid();
+  activeMonth = null; activeYear = null; activeCasaColl = null;
+  activeSource = 'blog'; allImages = []; selected.clear();
+  mazosEdSlug = null; mazosGameSlug = null; mazosEdName = null;
+  mazosCurrentProd = null;
+  mazosCards = []; mazosFiltered = [];
+  postGroups = []; sortOrder = 'desc';
+  document.getElementById('btnSort').style.display = 'none';
+  updateBadge(); renderBlogSidebar(); renderCasaSidebar(); renderMazosTree();
+  document.getElementById('radarRunBtn')?.classList.remove('active','scanning');
+  document.getElementById('radarBtnLabel').textContent = 'Escanear ahora';
+  mazosShowControls(false);
+  setBreadcrumb([]);
+  document.getElementById('mainTitle').textContent = 'Selecciona un mes del archivo';
+  document.getElementById('mainSub').textContent   = '';
+  document.getElementById('gridArea').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('pbWrap').style.display   = 'none';
+  setStatus('—');
+}
+
+// ── RADAR ─────────────────────────────────────────
+function runRadar() {
+  if (sse) { sse.close(); sse = null; }
+
+  activeSource   = 'radar';
+  activeMonth    = { year: 'radar', month: 'radar', label: 'Radar', key: 'radar' };
+  activeCasaColl = null;
+  allImages      = [];
+  postGroups     = [];
+  selected.clear();
+  updateBadge();
+  document.getElementById('btnSort').style.display = 'none';
+
+  renderBlogSidebar();
+  renderCasaSidebar();
+  setBreadcrumb([{label: 'Radar'}]);
+  document.getElementById('mainTitle').textContent = 'Radar — imágenes pre-publicación';
+  document.getElementById('mainSub').textContent   = 'Escaneando...';
+  setStatus('Radar activo...');
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML =
+    Array(8).fill('<div class="skel"></div>').join('');
+
+  const pbWrap = document.getElementById('pbWrap');
+  const pb     = document.getElementById('pb');
+  pbWrap.style.display = 'block';
+  pb.style.width = '5%';
+
+  const btn = document.getElementById('radarRunBtn');
+  const lbl = document.getElementById('radarBtnLabel');
+  const sub = document.getElementById('radarSub');
+  btn.classList.add('scanning');
+  lbl.textContent = 'Escaneando...';
+
+  sse = new EventSource('/api/blog/radar/stream');
+
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'radar_info') {
+      sub.textContent = msg.phase;
+      document.getElementById('mainSub').textContent = msg.phase;
+      pb.style.width = '5%';
+    }
+
+    if (msg.type === 'radar_progress') {
+      pb.style.width = msg.pct + '%';
+      document.getElementById('mainSub').textContent =
+        `Escaneando biblioteca... ${msg.done}/${msg.total} páginas`;
+    }
+
+    if (msg.type === 'post_done') {
+      pb.style.width = Math.max(parseInt(pb.style.width)||0,
+                                Math.round(msg.done/msg.total*100)) + '%';
+      if (msg.images && msg.images.length) {
+        postGroups.push({
+          title:  msg.post_title,
+          date:   msg.post_date,
+          url:    msg.post_url,
+          images: msg.images,
+        });
+      }
+      const buffered = postGroups.reduce((s, g) => s + g.images.length, 0);
+      document.getElementById('mainSub').textContent =
+        `${buffered} imágenes pre-publicación encontradas`;
+      setStatus(`Radar: ${buffered} imgs`);
+    }
+
+    if (msg.type === 'finished') {
+      sse.close(); sse = null;
+      pbWrap.style.display = 'none';
+      btn.classList.remove('scanning');
+
+      renderSortedGrid();
+      const imgCount = allImages.length;
+
+      btn.classList.toggle('active', imgCount > 0);
+      lbl.textContent = 'Escanear de nuevo';
+      const draftInfo = msg.draft_posts > 0 ? ` · ${msg.draft_posts} borradores` : '';
+      sub.textContent = `${imgCount} imágenes encontradas${draftInfo}`;
+      setStatus(`Radar: ${imgCount} imgs`);
+      document.getElementById('mainSub').textContent =
+        `${msg.radar_total} imágenes · ${msg.draft_posts} posts en borrador`;
+      document.getElementById('btnAll').disabled = imgCount === 0;
+      if (imgCount > 0) {
+        document.getElementById('btnSort').style.display = '';
+      } else {
+        document.getElementById('gridArea').style.display  = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+      }
+    }
+  };
+
+  sse.onerror = () => {
+    if (sse) { sse.close(); sse = null; }
+    pbWrap.style.display = 'none';
+    btn.classList.remove('scanning');
+    lbl.textContent = 'Reintentar';
+    setStatus('Error en radar');
+    toast('Error al escanear');
+  };
+}
+
+// ── CDN CARTAS ────────────────────────────────────────────────────────────────
+
+const CDN_BASE = 'https://cdn.shopify.com/s/files/1/0103/3601/0303/files/';
+
+// Cada entrada: prefijo, rango máximo a probar, extensiones, aprox. de imágenes conocidas
+// pngOnly=true → mostrar con color verde (solo existen en PNG)
+const CDN_PREFIXES = [
+  // ── Series conocidas originalmente ──
+  { p:'w',    to:18, exts:['.jpg','.png'], n:19, label:'w  — Vigilantes'            },
+  { p:'r',    to:18, exts:['.jpg','.png'], n:29, label:'r  — Prod. Shogun/PB 4.0'   },
+  { p:'fx',   to:20, exts:['.jpg'],        n:16, label:'fx — Bloque Furia'           },
+  { p:'a',    to:25, exts:['.jpg','.png'], n:25, label:'a  — Toolkits Imperio'       },
+  { p:'e',    to:24, exts:['.jpg','.png'], n:22, label:'e  — Toolkit 1ª Era'         },
+  { p:'b',    to:12, exts:['.jpg','.png'], n:10, label:'b  — Toolkit PB 2026'        },
+  { p:'c',    to:12, exts:['.jpg','.png'], n:10, label:'c  — Lootbox Lite'           },
+  { p:'d',    to:22, exts:['.jpg','.png'], n:18, label:'d'                           },
+  { p:'f',    to:13, exts:['.jpg'],        n:10, label:'f'                           },
+  { p:'g',    to:14, exts:['.jpg','.png'], n:11, label:'g'                           },
+  { p:'h',    to:16, exts:['.jpg','.png'], n:13, label:'h'                           },
+  { p:'i',    to:14, exts:['.jpg','.png'], n:11, label:'i'                           },
+  { p:'j',    to:7,  exts:['.jpg','.png'], n:4,  label:'j'                           },
+  { p:'l',    to:11, exts:['.jpg','.png'], n:8,  label:'l'                           },
+  { p:'n',    to:28, exts:['.jpg'],        n:24, label:'n'                           },
+  { p:'p',    to:13, exts:['.jpg','.png'], n:8,  label:'p'                           },
+  { p:'q',    to:11, exts:['.jpg','.png'], n:8,  label:'q'                           },
+  { p:'t',    to:15, exts:['.jpg','.png'], n:12, label:'t'                           },
+  { p:'v',    to:8,  exts:['.jpg'],        n:5,  label:'v'                           },
+  { p:'x',    to:12, exts:['.jpg'],        n:9,  label:'x'                           },
+  { p:'z',    to:12, exts:['.jpg'],        n:4,  label:'z'                           },
+  { p:'Z',    to:8,  exts:['.jpg'],        n:2,  label:'Z'                           },
+  { p:'rfx',  to:8,  exts:['.png'],        n:4,  label:'rfx — Relatos Furia', pngOnly:true },
+  { p:'tkpe', to:4,  exts:['.jpg'],        n:2,  label:'tkpe — Toolkit PE'           },
+  // ── Nuevos descubrimientos ──
+  { p:'cc',   to:28, exts:['.jpg'],        n:25, label:'cc ★',   isNew:true          },
+  { p:'bg',   to:24, exts:['.jpg'],        n:20, label:'bg ★',   isNew:true          },
+  { p:'rb',   to:24, exts:['.png'],        n:20, label:'rb ★',   isNew:true, pngOnly:true },
+  { p:'pe',   to:17, exts:['.jpg'],        n:14, label:'pe ★',   isNew:true          },
+  { p:'img',  to:22, exts:['.png'],        n:19, label:'img ★',  isNew:true, pngOnly:true },
+  { p:'tk',   to:14, exts:['.jpg'],        n:11, label:'tk ★',   isNew:true          },
+  { p:'tt',   to:11, exts:['.jpg'],        n:8,  label:'tt ★',   isNew:true          },
+  { p:'ad',   to:13, exts:['.jpg'],        n:10, label:'ad ★',   isNew:true          },
+  { p:'ee',   to:11, exts:['.png'],        n:8,  label:'ee ★',   isNew:true, pngOnly:true },
+  { p:'lt',   to:11, exts:['.jpg'],        n:8,  label:'lt ★',   isNew:true          },
+  { p:'ca',   to:13, exts:['.jpg','.png'], n:9,  label:'ca ★',   isNew:true          },
+  { p:'ra',   to:9,  exts:['.png'],        n:6,  label:'ra ★',   isNew:true, pngOnly:true },
+  { p:'ka',   to:9,  exts:['.png'],        n:6,  label:'ka ★',   isNew:true, pngOnly:true },
+  { p:'la',   to:8,  exts:['.png'],        n:5,  label:'la ★',   isNew:true, pngOnly:true },
+  { p:'B',    to:13, exts:['.jpg','.png'], n:10, label:'B ★',    isNew:true          },
+  { p:'as',   to:7,  exts:['.jpg'],        n:4,  label:'as ★',   isNew:true          },
+  { p:'y',    to:7,  exts:['.png'],        n:4,  label:'y ★',    isNew:true, pngOnly:true },
+  { p:'m',    to:6,  exts:['.png'],        n:3,  label:'m ★',    isNew:true, pngOnly:true },
+  { p:'zn',   to:5,  exts:['.jpg'],        n:2,  label:'zn ★',   isNew:true          },
+  { p:'pd',   to:5,  exts:['.jpg'],        n:2,  label:'pd ★',   isNew:true          },
+  { p:'rm',   to:3,  exts:['.png'],        n:1,  label:'rm ★',   isNew:true, pngOnly:true },
+  { p:'cs',   to:3,  exts:['.jpg'],        n:1,  label:'cs ★',   isNew:true          },
+];
+
+let cdnInited = false;
+let activeCdnPrefix = null;
+
+function initCdn() {
+  if (cdnInited) return;
+  cdnInited = true;
+  renderCdnGrid();
+}
+
+function renderCdnGrid() {
+  const el = document.getElementById('cdnGrid');
+  const known = CDN_PREFIXES.filter(x => !x.isNew);
+  const newOnes = CDN_PREFIXES.filter(x => x.isNew);
+
+  el.innerHTML = `
+    <div class="cdn-group-lbl">Series conocidas</div>
+    <div class="cdn-grid">
+      ${known.map(item => cdnPill(item)).join('')}
+    </div>
+    <div class="cdn-group-lbl">Nuevos descubrimientos ★</div>
+    <div class="cdn-grid">
+      ${newOnes.map(item => cdnPill(item)).join('')}
+    </div>
+  `;
+}
+
+function cdnPill(item) {
+  const active  = activeCdnPrefix === item.p ? 'active' : '';
+  const pngCls  = item.pngOnly ? 'png-only' : '';
+  const extHint = item.exts.length > 1 ? ' jpg+png' : (item.pngOnly ? ' png' : ' jpg');
+  return `<button class="cdn-pill ${active} ${pngCls}"
+    title="${item.label}${extHint} · ~${item.n} imgs"
+    onclick="loadCdnPrefix('${item.p}')">
+    ${item.p}<span class="cdn-cnt">${item.n}</span>
+  </button>`;
+}
+
+function loadCdnPrefix(prefix) {
+  const item = CDN_PREFIXES.find(x => x.p === prefix);
+  if (!item) return;
+
+  activeCdnPrefix = prefix;
+  renderCdnGrid();
+
+  // Rellenar el enumerador con los parámetros de esta serie
+  document.getElementById('enumBase').value  = CDN_BASE + item.p;
+  document.getElementById('enumFrom').value  = 1;
+  document.getElementById('enumTo').value    = item.to;
+  document.getElementById('enumExt').value   = item.exts[0];
+  document.getElementById('enumSampleUrl').value = '';
+  document.getElementById('enumTip').textContent =
+    `Serie "${item.p}" · rango 1–${item.to} · ${item.exts.join(' + ')}`;
+
+  // Sufijos: CDN Shopify nunca usa -1/-2
+  document.getElementById('sufNone').checked = true;
+  document.getElementById('suf1').checked    = false;
+  document.getElementById('suf2').checked    = false;
+  document.getElementById('suf3').checked    = false;
+
+  // Extensiones extra
+  document.getElementById('extPng').checked  = item.exts.includes('.png') && item.exts[0] !== '.png';
+  document.getElementById('extWebp').checked = false;
+
+  runEnumerator();
+}
+
+// ── ENUMERADOR ─────────────────────────────────────────────────────────────────
+
+let enumSse = null;
+
+/**
+ * Auto-detecta base URL, número y sufijo a partir de una URL de muestra.
+ * Soporta:
+ *   blog.myl.cl:  AYDV_179-1.png  → base=".../AYDV_", num=179, suf="-1"
+ *   Shopify CDN:  w8.jpg          → base=".../w",      num=8,   suf=""
+ */
+function enumAutoDetect(sampleUrl) {
+  const tip = document.getElementById('enumTip');
+  const ALLOWED = ['myl.cl', 'shopify.com'];
+  if (!ALLOWED.some(d => sampleUrl.includes(d))) {
+    tip.textContent = 'La URL debe ser de myl.cl o shopify.com';
+    return;
+  }
+
+  // Quitar query string (?v=...)
+  const cleanUrl   = sampleUrl.split('?')[0];
+  const lastSlash  = cleanUrl.lastIndexOf('/');
+  const dir        = cleanUrl.slice(0, lastSlash + 1);
+  const filename   = cleanUrl.slice(lastSlash + 1);
+
+  // Patrón: PREFIX + NUMBER + OPTIONAL_SUFFIX(-N) + EXT
+  // Ej: AYDV_179-1.png → prefix="AYDV_", num=179, suf="-1", ext=".png"
+  // Ej: w8.jpg         → prefix="w",      num=8,   suf="",   ext=".jpg"
+  const m = filename.match(/^(.*?)(\d+)(-\d+)?(\.[^.?]+)$/);
+  if (!m) {
+    tip.textContent = 'No se detectó patrón numérico en el nombre de archivo.';
+    return;
+  }
+  const prefix = m[1];
+  const num    = parseInt(m[2], 10);
+  const suf    = m[3] || '';
+  const ext    = m[4];
+
+  const isShopify = sampleUrl.includes('shopify.com');
+
+  document.getElementById('enumBase').value  = dir + prefix;
+  document.getElementById('enumFrom').value  = Math.max(1, num - 5);
+  document.getElementById('enumTo').value    = isShopify ? num + 20 : num + 50;
+  document.getElementById('enumExt').value   = ext;
+
+  // Sufijos: Shopify no usa -1/-2 (subida directa), blog WP sí
+  document.getElementById('sufNone').checked = true;
+  document.getElementById('suf1').checked    = !isShopify && (suf === '-1');
+  document.getElementById('suf2').checked    = !isShopify && (suf === '-2');
+  document.getElementById('suf3').checked    = false;
+
+  // Extensiones extra: si es jpg en Shopify, ofrecer también png
+  document.getElementById('extPng').checked  = isShopify && ext === '.jpg';
+  document.getElementById('extWebp').checked = false;
+
+  const rangeFrom = Math.max(1, num - 5);
+  const rangeTo   = isShopify ? num + 20 : num + 50;
+  tip.textContent =
+    `Patrón: "${prefix}N${suf}${ext}" · Rango ${rangeFrom}–${rangeTo}${isShopify ? ' · también .png' : ''}`;
+}
+
+function runEnumerator() {
+  const base    = document.getElementById('enumBase').value.trim();
+  const numFrom = parseInt(document.getElementById('enumFrom').value, 10);
+  const numTo   = parseInt(document.getElementById('enumTo').value,   10);
+  const ext     = document.getElementById('enumExt').value.trim() || '.png';
+
+  if (!base) { toast('Ingresa la URL base primero'); return; }
+  const ALLOWED_DOMAINS = ['myl.cl', 'shopify.com'];
+  if (!ALLOWED_DOMAINS.some(d => base.includes(d))) {
+    toast('URL base debe ser de myl.cl o shopify.com'); return;
+  }
+  if (isNaN(numFrom) || isNaN(numTo) || numTo < numFrom) {
+    toast('Rango numérico inválido'); return;
+  }
+
+  // Construir lista de extensiones a probar
+  const exts = [ext];
+  if (document.getElementById('extPng').checked  && ext !== '.png')  exts.push('.png');
+  if (document.getElementById('extWebp').checked && ext !== '.webp') exts.push('.webp');
+
+  const sufCount = [
+    document.getElementById('sufNone').checked,
+    document.getElementById('suf1').checked,
+    document.getElementById('suf2').checked,
+    document.getElementById('suf3').checked,
+  ].filter(Boolean).length;
+  const combos = (numTo - numFrom + 1) * sufCount * exts.length;
+  if (combos > 2000) { toast('Rango demasiado grande (máx 2000 combinaciones)'); return; }
+
+  // Parar SSE previo
+  if (enumSse) { enumSse.close(); enumSse = null; }
+  if (sse)     { sse.close(); sse = null; }
+
+  // Sufijos seleccionados
+  const sufList = [];
+  if (document.getElementById('sufNone').checked) sufList.push('');
+  if (document.getElementById('suf1').checked)    sufList.push('-1');
+  if (document.getElementById('suf2').checked)    sufList.push('-2');
+  if (document.getElementById('suf3').checked)    sufList.push('-3');
+  if (!sufList.length) { toast('Selecciona al menos un sufijo'); return; }
+
+  // Preparar main panel
+  activeSource = 'enum';
+  activeMonth  = { year: 'enum', month: 'enum', label: 'Enumerador', key: 'enum' };
+  activeCasaColl = null;
+  allImages = [];
+  selected.clear();
+  updateBadge();
+
+  renderBlogSidebar();
+  renderCasaSidebar();
+  setBreadcrumb([{label: 'Enumerador'}]);
+  document.getElementById('mainTitle').textContent = 'Enumerador — búsqueda por rango';
+  document.getElementById('mainSub').textContent   = `Probando ${combos} URLs…`;
+  setStatus('Enumerando...');
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML        = '';
+
+  const pbWrap = document.getElementById('pbWrap');
+  const pb     = document.getElementById('pb');
+  pbWrap.style.display = 'block';
+  pb.style.width       = '0%';
+
+  const btn    = document.getElementById('enumRunBtn');
+  const status = document.getElementById('enumStatus');
+  btn.textContent = 'Buscando…';
+  btn.disabled    = true;
+
+  const params = new URLSearchParams({
+    base_url: base,
+    from:     numFrom,
+    to:       numTo,
+    ext:      exts.join(','),   // puede ser ".jpg,.png"
+    suffixes: sufList.join(','),
+  });
+  enumSse = new EventSource(`/api/blog/enumerate/stream?${params}`);
+
+  let total = 0, found = 0;
+  const foundImgs = [];
+
+  enumSse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'total') {
+      total = msg.total;
+      status.textContent = `0 / ${total} · 0 halladas`;
+    }
+
+    if (msg.type === 'found') {
+      found++;
+      pb.style.width = Math.round(msg.checked / total * 100) + '%';
+      foundImgs.push(msg.img);
+      allImages.push(msg.img);
+      // Insertar imagen inmediatamente en el grid
+      const grid = document.getElementById('imgGrid');
+      const card = document.createElement('div');
+      card.className = 'img-card';
+      card.dataset.url = msg.img.url;
+      card.onclick = () => toggle(msg.img.url);
+      card.innerHTML = `
+        <div class="img-thumb">
+          <img src="/api/proxy-image?url=${encodeURIComponent(msg.img.url)}"
+               alt="${msg.img.filename}" loading="lazy"
+               onload="this.classList.add('loaded')"
+               onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+          <div class="img-err" style="display:none">No disponible</div>
+        </div>
+        <div class="img-name" title="${msg.img.filename}">${msg.img.filename}</div>`;
+      grid.appendChild(card);
+      status.textContent = `${msg.checked} / ${total} · ${found} halladas`;
+      setStatus(`Enum: ${found} imgs`);
+      document.getElementById('btnAll').disabled = false;
+    }
+
+    if (msg.type === 'progress') {
+      pb.style.width = Math.round(msg.checked / total * 100) + '%';
+      status.textContent = `${msg.checked} / ${total} · ${msg.found} halladas`;
+    }
+
+    if (msg.type === 'finished') {
+      enumSse.close(); enumSse = null;
+      pbWrap.style.display = 'none';
+      btn.textContent = 'Buscar de nuevo';
+      btn.disabled    = false;
+      status.textContent = `Listo — ${found} imágenes halladas de ${msg.checked} probadas`;
+      setStatus(`Enum: ${found}/${msg.checked}`);
+      document.getElementById('mainSub').textContent =
+        `${found} imágenes halladas · ${msg.checked} URLs probadas`;
+      if (!found) {
+        document.getElementById('gridArea').style.display  = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+      }
+    }
+  };
+
+  enumSse.onerror = () => {
+    if (enumSse) { enumSse.close(); enumSse = null; }
+    pbWrap.style.display = 'none';
+    btn.textContent = 'Buscar imágenes';
+    btn.disabled    = false;
+    status.textContent = 'Error al conectar';
+    setStatus('Error enum');
+    toast('Error al enumerar');
+  };
+}
+
+function setStatus(msg) { document.getElementById('statusPill').textContent = msg; }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── MAZOS.CL ──────────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── MODO (edition / product) ──────────────────────────────────────────────────
+
+function setMazosMode(mode) {
+  mazosMode = mode;
+  document.getElementById('mTabEd').classList.toggle('active',   mode==='edition');
+  document.getElementById('mTabProd').classList.toggle('active', mode==='product');
+  document.getElementById('mazosTree').style.display        = mode==='edition' ? '' : 'none';
+  document.getElementById('mazosProductTree').style.display = mode==='product' ? '' : 'none';
+  // Switch filter bar extras
+  document.getElementById('mFiltEdRange').style.display    = mode==='edition' ? '' : 'none';
+  document.getElementById('mFiltProdExtra').style.display  = mode==='product' ? '' : 'none';
+  // Reset current selection state
+  if (mode==='product' && !mazosProductDone) initMazosProducts();
+  clearMazosFilter();
+  // Clear grid if switching mode mid-session
+  if (activeSource==='mazos') {
+    mazosEdSlug=null; mazosCurrentProd=null; mazosCards=[]; mazosFiltered=[];
+    allImages=[]; selected.clear(); updateBadge();
+    document.getElementById('imgGrid').innerHTML='';
+    document.getElementById('emptyState').style.display='flex';
+    document.getElementById('gridArea').style.display='none';
+    document.getElementById('mainTitle').textContent = 'Selecciona una ' + (mode==='edition'?'edición':'producto');
+    document.getElementById('mainSub').textContent='';
+    document.getElementById('btnSaveDisk').disabled=true;
+    document.getElementById('btnAll').disabled=true;
+  }
+}
+
+// ── INICIALIZAR CATÁLOGO EDICIONES (lazy) ─────────────────────────────────────
+
+let mazosSnapshotInfo = '';
+
+async function initMazos() {
+  if (mazosCatalogDone) return;
+  const tree = document.getElementById('mazosTree');
+  tree.innerHTML = '<div style="padding:1rem;text-align:center;color:#4a5568;font-size:.8rem">Conectando con mazos.cl (descargando catálogo, ~1 min)...</div>';
+  try {
+    const r = await fetch('/api/mazos/catalog');
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+    mazosGames = j.data;
+    mazosSnapshotInfo = j.source === 'snapshot'
+      ? `⚠ mazos.cl no responde: usando snapshot guardado del ${j.downloaded_at.replace('T',' ')}`
+      : '';
+    if (j.source === 'snapshot') console.warn('mazos.cl en vivo falló:', j.live_error);
+    mazosCatalogDone = true;
+    document.getElementById('mazosModeTabs').style.display = 'flex';
+    renderMazosTree();
+  } catch(e) {
+    tree.innerHTML = `<div style="padding:1rem;color:#e53935;font-size:.8rem">Error: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderMazosTree() {
+  const tree = document.getElementById('mazosTree');
+  if (!mazosGames.length) {
+    tree.innerHTML = '<div style="padding:1rem;color:#4a5568;font-size:.8rem">Sin juegos MYL.</div>';
+    return;
+  }
+  const notice = mazosSnapshotInfo
+    ? `<div style="padding:.5rem .75rem;margin-bottom:.4rem;background:#3a2e0b;color:#f6c344;font-size:.72rem;border-radius:6px" title="Las imágenes siguen viniendo de cdn.mazos.cl">${escHtml(mazosSnapshotInfo)}</div>`
+    : '';
+  tree.innerHTML = notice + mazosGames.map(g => {
+    const open = mazosOpenGames.has(g.slug) || g.editions.some(e => e.slug === mazosEdSlug);
+    return `<div>
+      <button class="mazos-game-btn ${open?'open':''}" onclick="toggleMazosGame('${escHtml(g.slug)}')">
+        <span>${escHtml(g.name)}</span><span class="arrow">▶</span>
+      </button>
+      <div class="mazos-eds-wrap ${open?'open':''}">
+        ${g.editions.map(e => `
+          <button class="mazos-ed-btn ${e.slug===mazosEdSlug?'active':''}"
+                  data-slug="${escHtml(e.slug)}" data-game="${escHtml(g.slug)}" data-name="${escHtml(e.name)}"
+                  onclick="selectMazosEdition(this.dataset.slug,this.dataset.game,this.dataset.name)">
+            <span>${escHtml(e.name)}</span>
+            <span class="m-count">${e.count}</span>
+          </button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMazosGame(slug) {
+  if (mazosOpenGames.has(slug)) mazosOpenGames.delete(slug);
+  else mazosOpenGames.add(slug);
+  renderMazosTree();
+}
+
+function mazosShowControls(show) {
+  document.getElementById('mazosFilterBar').style.display = show ? 'flex' : 'none';
+  document.getElementById('btnSaveDisk').style.display    = show ? ''     : 'none';
+}
+
+// Cargar cartas de una edición
+async function selectMazosEdition(slug, gameSlug, edName) {
+  if (sse) { sse.close(); sse = null; }
+  if (mazosSse) { mazosSse.close(); mazosSse = null; }
+
+  mazosEdSlug   = slug;
+  mazosGameSlug = gameSlug;
+  mazosEdName   = edName;
+  activeSource  = 'mazos';
+  activeMonth   = { year:'mazos', month:slug, label:edName, key:`mazos/${slug}` };
+  activeCasaColl = null;
+  allImages = []; selected.clear(); updateBadge();
+  mazosCards = []; mazosFiltered = [];
+
+  renderMazosTree();
+  renderBlogSidebar();
+  renderCasaSidebar();
+
+  const gameName = mazosGames.find(g => g.slug===gameSlug)?.name || gameSlug;
+  setBreadcrumb([
+    {label:'Mazos.cl',   fn:"toggleSec('mazos')"},
+    {label: gameName,    fn:`toggleMazosGame('${escHtml(gameSlug)}')`},
+    {label: edName}
+  ]);
+  document.getElementById('mainTitle').textContent = edName;
+  document.getElementById('mainSub').textContent   = 'Cargando cartas...';
+  setStatus('Cargando...');
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML = Array(16).fill('<div class="skel"></div>').join('');
+  mazosShowControls(true);
+  document.getElementById('btnSaveDisk').disabled = true;
+  document.getElementById('btnAll').disabled = true;
+  document.getElementById('btnDl').disabled  = true;
+
+  try {
+    const r = await fetch(`/api/mazos/edition?slug=${encodeURIComponent(slug)}`);
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+
+    mazosCards    = j.data;
+    mazosFiltered = j.data;
+
+    // Llenar selector de tipo
+    const sel = document.getElementById('mFiltType');
+    sel.innerHTML = '<option value="">Todos los tipos</option>';
+    (j.types||[]).forEach(t => {
+      const o = document.createElement('option');
+      o.value = t; o.textContent = t; sel.appendChild(o);
+    });
+
+    // Hints de rango ID
+    document.getElementById('mFiltFrom').value = '';
+    document.getElementById('mFiltTo').value   = '';
+    document.getElementById('mFiltType').value = '';
+    document.getElementById('mFiltInfo').textContent = '';
+    document.getElementById('mFiltFrom').placeholder = `desde (${j.id_min})`;
+    document.getElementById('mFiltTo').placeholder   = `hasta (${j.id_max})`;
+
+    renderMazosGrid(mazosFiltered, false);
+    document.getElementById('mainSub').textContent = `${mazosCards.length} cartas · IDs ${j.id_min}–${j.id_max}`;
+    setStatus(`${mazosCards.length} cartas`);
+    document.getElementById('btnAll').disabled      = mazosCards.length === 0;
+    document.getElementById('btnSaveDisk').disabled = mazosCards.length === 0;
+
+  } catch(e) {
+    document.getElementById('imgGrid').innerHTML = '';
+    document.getElementById('gridArea').style.display  = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+    toast(`Error: ${e.message}`); setStatus('Error');
+  }
+}
+
+// ── FILTROS ───────────────────────────────────────────────────────────────────
+
+function applyMazosFilter() {
+  const typeVal = document.getElementById('mFiltType').value;
+  let filtered;
+
+  if (mazosMode === 'edition') {
+    const fromVal = parseInt(document.getElementById('mFiltFrom').value) || 0;
+    const toVal   = parseInt(document.getElementById('mFiltTo').value)   || 9_999_999;
+    filtered = mazosCards.filter(c =>
+      c.id >= fromVal && c.id <= toVal && (!typeVal || c.type === typeVal)
+    );
+  } else {
+    // Product mode: edition + min-qty + type
+    const edVal  = document.getElementById('mFiltEd').value;
+    const qtyMin = parseInt(document.getElementById('mFiltQty').value) || 1;
+    filtered = mazosCards.filter(c =>
+      (!typeVal || c.type === typeVal) &&
+      (!edVal   || c.edition?.slug === edVal) &&
+      (c.quantity || 1) >= qtyMin
+    );
+  }
+
+  mazosFiltered = filtered;
+  const diff = mazosFiltered.length < mazosCards.length;
+  document.getElementById('mFiltInfo').textContent =
+    diff ? `${mazosFiltered.length} de ${mazosCards.length}` : '';
+
+  allImages=[]; selected.clear(); updateBadge();
+  renderMazosGrid(mazosFiltered, mazosMode==='product');
+  document.getElementById('mainSub').textContent =
+    `${mazosFiltered.length} cartas${diff ? ' (filtradas)' : ''}`;
+  document.getElementById('btnAll').disabled = mazosFiltered.length===0;
+}
+
+function clearMazosFilter() {
+  ['mFiltFrom','mFiltTo','mFiltQty'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['mFiltType','mFiltEd'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('mFiltInfo').textContent='';
+  mazosFiltered = mazosCards;
+  allImages=[]; selected.clear(); updateBadge();
+  renderMazosGrid(mazosFiltered, mazosMode==='product');
+  document.getElementById('mainSub').textContent = `${mazosCards.length} cartas`;
+  document.getElementById('btnAll').disabled = mazosCards.length===0;
+}
+
+// ── GRID DE CARTAS ────────────────────────────────────────────────────────────
+
+const TYPE_CLS = {
+  ALIADO:'type-ALIADO', ARMA:'type-ARMA',
+  'TALISMAN':'type-TALISMAN', 'TALISMÁN':'type-TALISMAN',
+  'TOTEM':'type-TOTEM', 'TÓTEM':'type-TOTEM', ORO:'type-ORO',
+};
+
+function renderMazosGrid(cards, productMode=false) {
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = '';
+  if (!cards.length) {
+    document.getElementById('gridArea').style.display  = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+    return;
+  }
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+
+  allImages = cards.map(c => ({ url: c.imageUrl, ...c }));
+
+  cards.forEach(card => {
+    const url   = card.imageUrl || '';
+    const isSel = selected.has(url);
+    const tc    = TYPE_CLS[card.type] || '';
+    const races = (card.race || []).join(', ');
+    const qty   = card.quantity || 1;
+    const edName = card.edition?.name || '';
+
+    const el = document.createElement('div');
+    el.className = `img-card mazos-card${isSel?' selected':''}`;
+    el.dataset.url = url;
+    el.onclick = () => toggleMazosCard(url, el);
+
+    el.innerHTML = `
+      <div class="img-thumb">
+        <img src="${escHtml(url)}" alt="${escHtml(card.name)}" loading="lazy"
+             onload="this.classList.add('loaded')"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="img-err" style="display:none">No disponible</div>
+        ${isSel ? '<div class="chk">✓</div>' : ''}
+        ${productMode && qty>1 ? `<div class="qty-badge qty${Math.min(qty,3)}">x${qty}</div>` : ''}
+        ${productMode && edName ? `<div class="ed-badge" title="${escHtml(edName)}">${escHtml(edName)}</div>` : ''}
+        ${!productMode && card.type ? `<div class="type-badge ${tc}">${escHtml(card.type)}</div>` : ''}
+        ${card.cost!=null ? `<div class="cost-badge">${card.cost}</div>` : ''}
+      </div>
+      <div class="img-name" title="${escHtml(card.name)}">${escHtml(card.name)}</div>
+      <div class="race-row">
+        ${races ? `<span class="race-tag">${escHtml(races)}</span>` : ''}
+        ${productMode && card.type ? `<span class="race-tag ${tc}" style="font-weight:700">${escHtml(card.type)}</span>` : ''}
+      </div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function toggleMazosCard(url, el) {
+  if (!url) return;
+  selected.has(url) ? selected.delete(url) : selected.add(url);
+  el.classList.toggle('selected', selected.has(url));
+  const chk = el.querySelector('.chk');
+  if (selected.has(url) && !chk) {
+    const d = document.createElement('div');
+    d.className = 'chk'; d.textContent = '✓';
+    el.querySelector('.img-thumb').appendChild(d);
+  } else if (!selected.has(url) && chk) chk.remove();
+  updateBadge();
+}
+
+// ── DESCARGAR ZIP ─────────────────────────────────────────────────────────────
+
+async function downloadMazosZip() {
+  const toDown = selected.size > 0
+    ? mazosFiltered.filter(c => c.imageUrl && selected.has(c.imageUrl))
+    : [];
+  if (!toDown.length) { toast('Selecciona cartas para descargar ZIP'); return; }
+
+  const n = toDown.length;
+  document.getElementById('btnDl').disabled = true;
+  toast(`Generando ZIP con ${n} carta${n>1?'s':''}… puede tardar.`);
+  setStatus('Generando ZIP...');
+
+  try {
+    const r = await fetch('/api/mazos/download-zip', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ cards: toDown, name: mazosEdName }),
+    });
+    if (!r.ok) throw new Error('Error del servidor');
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    // Toda la edición/producto (sin filtro) -> ZIP con su nombre
+    const full = mazosCards.filter(c => c.imageUrl);
+    a.download = (full.length === n && mazosEdName
+      ? zipSafe(mazosEdName) : `mazos_${mazosEdSlug}_${Date.now()}`) + '.zip';
+    a.click(); URL.revokeObjectURL(a.href);
+    toast(`✓ ${n} carta${n>1?'s':''} en ZIP`);
+    setStatus('ZIP descargado');
+  } catch(e) {
+    toast(`Error: ${e.message}`); setStatus('Error');
+  } finally {
+    updateBadge();
+  }
+}
+
+// ── CATÁLOGO DE PRODUCTOS (lazy) ──────────────────────────────────────────────
+
+async function initMazosProducts() {
+  if (mazosProductDone) return;
+  const tree = document.getElementById('mazosProductTree');
+  tree.innerHTML = '<div style="padding:1rem;text-align:center;color:#4a5568;font-size:.8rem">Cargando productos...</div>';
+  try {
+    const r = await fetch('/api/mazos/products-catalog');
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+    mazosProductBlocks = j.data;
+    mazosProductDone = true;
+    document.getElementById('mazosModeTabs').style.display = 'flex';
+    renderProductTree();
+  } catch(e) {
+    tree.innerHTML = `<div style="padding:1rem;color:#e53935;font-size:.8rem">Error: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderProductTree() {
+  const tree = document.getElementById('mazosProductTree');
+  if (!mazosProductBlocks.length) {
+    tree.innerHTML = '<div style="padding:1rem;color:#4a5568;font-size:.8rem">Sin productos MYL.</div>';
+    return;
+  }
+  tree.innerHTML = mazosProductBlocks.map(blk => {
+    const open = mazosOpenBlocks.has(blk.slug) ||
+                 (mazosCurrentProd && blk.products.some(p => p.id === mazosCurrentProd?.id));
+    return `<div>
+      <button class="mazos-game-btn ${open?'open':''}" onclick="toggleProductBlock('${escHtml(blk.slug)}')">
+        <span>${escHtml(blk.name)}</span>
+        <span class="arrow">▶</span>
+      </button>
+      <div class="mazos-eds-wrap ${open?'open':''}">
+        ${blk.products.length === 0
+          ? `<div style="padding:.5rem 1.4rem;font-size:.74rem;color:#4a5568">Sin productos</div>`
+          : blk.products.map(p => `
+            <button class="mazos-prod-btn ${mazosCurrentProd?.id===p.id?'active':''}"
+                    data-id="${p.id}" data-name="${escHtml(p.name)}" data-game="${escHtml(blk.slug)}"
+                    title="${p.date ? 'Salida estimada: '+escHtml(p.date) : ''}"
+                    onclick="selectMazosProduct(+this.dataset.id, this.dataset.name, this.dataset.game)">
+              ${p.order ? `<span class="prod-order">${p.order}</span>` : ''}
+              <span class="prod-name">${escHtml(p.name)}</span>
+              ${p.date ? `<span class="prod-date">${escHtml(p.date)}</span>` : ''}
+            </button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleProductBlock(slug) {
+  if (mazosOpenBlocks.has(slug)) mazosOpenBlocks.delete(slug);
+  else mazosOpenBlocks.add(slug);
+  renderProductTree();
+}
+
+// ── CARGAR PRODUCTO ───────────────────────────────────────────────────────────
+
+async function selectMazosProduct(id, name, gameSlug) {
+  if (sse) { sse.close(); sse = null; }
+  if (mazosSse) { mazosSse.close(); mazosSse = null; }
+
+  mazosCurrentProd = {id, name, slug: ''};
+  mazosEdSlug   = null;
+  mazosGameSlug = gameSlug;
+  mazosEdName   = name;
+  activeSource  = 'mazos';
+  activeMonth   = {year:'mazos', month:`prod_${id}`, label:name, key:`mazos/prod/${id}`};
+  activeCasaColl = null;
+  allImages=[]; selected.clear(); updateBadge();
+  mazosCards=[]; mazosFiltered=[];
+
+  renderProductTree();
+  renderBlogSidebar();
+  renderCasaSidebar();
+
+  const blkName = mazosProductBlocks.find(b=>b.slug===gameSlug)?.name || gameSlug;
+  setBreadcrumb([
+    {label:'Mazos.cl', fn:"toggleSec('mazos')"},
+    {label: blkName,   fn:`toggleProductBlock('${escHtml(gameSlug)}')`},
+    {label: name},
+  ]);
+  document.getElementById('mainTitle').textContent = name;
+  document.getElementById('mainSub').textContent   = 'Cargando cartas del producto...';
+  setStatus('Cargando...');
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('gridArea').style.display   = 'block';
+  document.getElementById('imgGrid').innerHTML = Array(12).fill('<div class="skel"></div>').join('');
+  mazosShowControls(true);
+  document.getElementById('btnSaveDisk').disabled = true;
+  document.getElementById('btnAll').disabled = true;
+  document.getElementById('btnDl').disabled  = true;
+
+  try {
+    const r = await fetch(`/api/mazos/product?id=${id}`);
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+
+    mazosCurrentProd.slug = j.product.slug;
+    mazosCards    = j.data;
+    mazosFiltered = j.data;
+
+    // Poblar filtros
+    const typeSelect = document.getElementById('mFiltType');
+    typeSelect.innerHTML = '<option value="">Todos los tipos</option>';
+    (j.types||[]).forEach(t => {
+      const o=document.createElement('option'); o.value=t; o.textContent=t; typeSelect.appendChild(o);
+    });
+    const edSelect = document.getElementById('mFiltEd');
+    edSelect.innerHTML = '<option value="">Todas</option>';
+    (j.editions||[]).forEach(e => {
+      const o=document.createElement('option'); o.value=e.slug; o.textContent=e.name; edSelect.appendChild(o);
+    });
+
+    // Limpiar valores previos
+    ['mFiltFrom','mFiltTo','mFiltQty'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('mFiltType').value='';
+    document.getElementById('mFiltEd').value='';
+    document.getElementById('mFiltInfo').textContent='';
+
+    renderMazosGrid(mazosFiltered, true);
+    const edCount = j.editions.length;
+    document.getElementById('mainSub').textContent =
+      `${mazosCards.length} cartas${edCount>1 ? ` · ${edCount} ediciones mezcladas` : ''}`;
+    setStatus(`${mazosCards.length} cartas`);
+    document.getElementById('btnAll').disabled      = mazosCards.length===0;
+    document.getElementById('btnSaveDisk').disabled = mazosCards.length===0;
+
+  } catch(e) {
+    document.getElementById('imgGrid').innerHTML='';
+    document.getElementById('gridArea').style.display ='none';
+    document.getElementById('emptyState').style.display='flex';
+    toast(`Error: ${e.message}`); setStatus('Error');
+  }
+}
+
+// ── GUARDAR EN DISCO (SSE) ────────────────────────────────────────────────────
+
+function saveMazosDisk() {
+  if (!mazosEdSlug) return;
+  if (mazosSse) { mazosSse.close(); mazosSse = null; }
+
+  const fromVal = document.getElementById('mFiltFrom').value || '0';
+  const toVal   = document.getElementById('mFiltTo').value   || '9999999';
+  const typeVal = document.getElementById('mFiltType').value;
+
+  const params = new URLSearchParams({
+    slug: mazosEdSlug, game: mazosGameSlug,
+    id_from: fromVal, id_to: toVal, type: typeVal,
+  });
+
+  document.getElementById('btnSaveDisk').disabled = true;
+  document.getElementById('pbWrap').style.display = 'block';
+  document.getElementById('pb').style.width = '0%';
+  setStatus('Guardando en disco...');
+  toast('Iniciando descarga al disco…');
+
+  mazosSse = new EventSource(`/api/mazos/save/stream?${params}`);
+
+  mazosSse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'total') {
+      document.getElementById('mainSub').textContent = `Guardando ${msg.total} cartas en disco…`;
+    }
+    if (msg.type === 'progress') {
+      document.getElementById('pb').style.width = msg.pct + '%';
+      document.getElementById('mainSub').textContent =
+        `[${msg.done}/${msg.total}] ✓ ${msg.ok} nuevas · ↺ ${msg.cached} ya existían · ✗ ${msg.err} errores`;
+      setStatus(`Guardando ${msg.pct}%`);
+    }
+    if (msg.type === 'finished') {
+      mazosSse.close(); mazosSse = null;
+      document.getElementById('pbWrap').style.display  = 'none';
+      document.getElementById('btnSaveDisk').disabled  = false;
+      const line = `✓ ${msg.ok} guardadas · ↺ ${msg.cached} ya existían${msg.err ? ` · ✗ ${msg.err} errores` : ''}`;
+      document.getElementById('mainSub').textContent = line;
+      setStatus('Guardado completo');
+      toast(`Guardado en: ${msg.folder}`);
+    }
+    if (msg.type === 'error') {
+      mazosSse.close(); mazosSse = null;
+      document.getElementById('pbWrap').style.display = 'none';
+      document.getElementById('btnSaveDisk').disabled = false;
+      toast(`Error: ${msg.message}`); setStatus('Error');
+    }
+  };
+  mazosSse.onerror = () => {
+    if (mazosSse) { mazosSse.close(); mazosSse = null; }
+    document.getElementById('pbWrap').style.display = 'none';
+    document.getElementById('btnSaveDisk').disabled = false;
+    toast('Error al guardar en disco'); setStatus('Error');
+  };
+}
+</script>
+</body>
+</html>
