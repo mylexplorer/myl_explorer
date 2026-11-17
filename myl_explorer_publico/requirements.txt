@@ -1,4 +1,0 @@
-Flask==2.3.3
-beautifulsoup4==4.12.2
-Pillow
-gunicorn==23.0.0
